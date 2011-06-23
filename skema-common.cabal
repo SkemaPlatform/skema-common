@@ -15,12 +15,13 @@ flag testing
 Library
   hs-source-dirs:  src
   ghc-options:     -Wall
-  Build-Depends:   base==4.*, bytestring==0.9.1.*, json==0.4.*
+  Build-Depends:   base==4.*, containers==0.4.*, bytestring==0.9.1.*, json==0.4.*
   extensions: CPP
   Exposed-modules:
     Skema.Util
     Skema.JSON
     Skema.Types
+    Skema.ProgramFlow
   Other-modules:
   if flag(testing)
     buildable: False
@@ -29,7 +30,7 @@ Executable skema-common-test
   hs-source-dirs:  src tests
   ghc-options:     -Wall -fhpc -Werror
   Main-is:         skema_common_test.lhs
-  Build-Depends:   base==4.*, QuickCheck >= 2, bytestring==0.9.1.*, json==0.4.*
+  Build-Depends:   base==4.*, QuickCheck >= 2, containers==0.4.*, bytestring==0.9.1.*, json==0.4.*
   cpp-options:   -DTESTING
 
   if flag(testing)
