@@ -21,8 +21,13 @@ module Main( main ) where
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
---import Test.QuickCheck( Arbitrary(..), quickCheck, arbitrarySizedIntegral )
+import Test.QuickCheck( Arbitrary(..), quickCheck )
 import Text.Printf( printf )
+import Data.Char( isHexDigit )
+import qualified Data.ByteString.Lazy.Char8 as LC
+  ( ByteString, fromChunks, length )
+import qualified Data.ByteString.Char8 as BC( ByteString, null, pack )
+import Skema.Util( hexByteString, byteStringHex )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -32,12 +37,36 @@ main = mapM_ (\(s,a) -> printf "%-25s: " s >> a) tests
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+instance Arbitrary BC.ByteString where
+  arbitrary = BC.pack `fmap` arbitrary
+
+instance Arbitrary LC.ByteString where
+  arbitrary = arbitrary >>= return . LC.fromChunks . filter (not. BC.null)
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Skema.Util tests
+
+\begin{code}
+prop_hexByteString :: String -> Bool
+prop_hexByteString xs = (LC.length.hexByteString) cad <= (fromIntegral.length) cad
+  where
+    cad = filter isHexDigit xs
+\end{code}
+
+\begin{code}
+prop_hexByteString_ident :: LC.ByteString -> Bool
+prop_hexByteString_ident xs = (hexByteString . byteStringHex) xs == xs
+\end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 tests :: [(String, IO ())]
-tests = []
+tests = [
+  ("Skema.Util: hex -> ByteStrign", quickCheck prop_hexByteString),
+  ("Skema.Util: hex <-> ByteStrign id", quickCheck prop_hexByteString_ident)
+ ]
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
