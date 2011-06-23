@@ -1,0 +1,35 @@
+Name:          skema-common
+Version:       0.1.0
+Cabal-Version: >=1.8
+Description:   skema common libraries
+License:       GPL
+License-file:  LICENSE
+Author:        Luis Cabellos
+Maintainer:    cabellos@ifca.unican.es
+Build-Type:    Simple
+
+flag testing
+    description: Testing mode
+    default: False
+
+Library
+  hs-source-dirs:  src
+  ghc-options:     -Wall
+  Build-Depends:   base==4.*
+  extensions: CPP
+  Exposed-modules: 
+  Other-modules:
+  if flag(testing)
+    buildable: False
+
+Executable skema-common-test
+  hs-source-dirs:  src tests
+  ghc-options:     -Wall -fhpc -Werror
+  Main-is:         skema_common_test.lhs
+  Build-Depends:   base==4.*, QuickCheck >= 2
+  cpp-options:   -DTESTING
+
+  if flag(testing)
+    buildable: True
+  else
+    buildable: False
