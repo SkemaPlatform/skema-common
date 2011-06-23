@@ -28,6 +28,7 @@ import qualified Data.ByteString.Lazy.Char8 as LC
   ( ByteString, fromChunks, length )
 import qualified Data.ByteString.Char8 as BC( ByteString, null, pack )
 import Skema.Util( hexByteString, byteStringHex )
+import Skema.JSON( prettyJSON )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -61,11 +62,20 @@ prop_hexByteString_ident xs = (hexByteString . byteStringHex) xs == xs
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Skema.JSON tests
+
+\begin{code}
+prop_prettyjson_length :: String -> Bool
+prop_prettyjson_length st = length st <= (length . prettyJSON) st
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 tests :: [(String, IO ())]
 tests = [
   ("Skema.Util: hex -> ByteStrign", quickCheck prop_hexByteString),
-  ("Skema.Util: hex <-> ByteStrign id", quickCheck prop_hexByteString_ident)
+  ("Skema.Util: hex <-> ByteStrign id", quickCheck prop_hexByteString_ident),
+  ("Skema.JSON: prettyJSON length", quickCheck prop_prettyjson_length) 
  ]
 \end{code}
 

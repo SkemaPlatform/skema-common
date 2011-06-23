@@ -19,6 +19,7 @@ Library
   extensions: CPP
   Exposed-modules:
     Skema.Util
+    Skema.JSON
   Other-modules:
   if flag(testing)
     buildable: False
