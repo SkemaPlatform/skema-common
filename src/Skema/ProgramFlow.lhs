@@ -17,17 +17,17 @@
 \begin{code}
 module Skema.ProgramFlow
     ( PFIOPoint(..), PFKernel(..), ProgramFlow(..), PFNode(..), PFArrow(..)
-    , emptyProgramFlow, generateJSONString ) where
+    , emptyProgramFlow, exampleProgramFlow, generateJSONString ) where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-import Control.Arrow( second )
-import qualified Data.IntMap as MI( IntMap, empty )
-import qualified Data.Map as M( Map, empty, assocs )
+import qualified Data.IntMap as MI( IntMap, empty, fromList )
+import qualified Data.Map as M( Map, empty, fromList )
 import Text.JSON
-    ( Result(..), JSON(..), JSValue(..), makeObj, encode )
+    ( Result(..), JSON(..), JSValue(..), makeObj, encode, fromJSObject )
 import Skema.Types( IOPointType(..), IOPointDataType(..) )
+import Skema.JSON( smapToObj, objToSmap, jsonLookup )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -43,7 +43,13 @@ instance JSON PFIOPoint where
     showJSON pfiop = makeObj 
                      [ ("data", (showJSON . pfIOPDataType) pfiop )
                      , ("type", (showJSON . pfIOPType) pfiop)]
-    readJSON _ = Error "not implemented"
+    readJSON (JSObject obj) = let
+      jsonObjAssoc = fromJSObject obj
+      in do
+        d <- jsonLookup "data" jsonObjAssoc >>= readJSON
+        t <- jsonLookup "type" jsonObjAssoc >>= readJSON
+        return $ PFIOPoint d t 
+    readJSON _ = fail "invalid PFIOPoint"
 \end{code}
 
 \begin{code}
@@ -57,8 +63,14 @@ data PFKernel = PFKernel
 instance JSON PFKernel where
     showJSON pfk = makeObj 
                    [ ("body", showJSON . pfkBody $ pfk)
-                   , ("io", mapToObj . pfkIOPoints $ pfk)]
-    readJSON _ = Error "not implemented"
+                   , ("io", smapToObj . pfkIOPoints $ pfk)]
+    readJSON (JSObject obj) = let
+      jsonObjAssoc = fromJSObject obj
+      in do
+        body <- jsonLookup "body" jsonObjAssoc >>= readJSON
+        io <- jsonLookup "io" jsonObjAssoc >>= objToSmap
+        return $ PFKernel body io
+    readJSON _ = Error "invalid PFKernel"
 \end{code}
 
 \begin{code}
@@ -71,7 +83,12 @@ data PFNode = PFNode
 instance JSON PFNode where
     showJSON pfn = makeObj
                    [ ("kernel", showJSON . pfnIndex $ pfn )]
-    readJSON _ = Error "not implemented"
+    readJSON (JSObject obj) = let
+      jsonObjAssoc = fromJSObject obj
+      in do
+        i <- jsonLookup "kernel" jsonObjAssoc >>= readJSON
+        return $ PFNode i
+    readJSON _ = fail "invalid PFNode"
 \end{code}
 
 \begin{code}
@@ -88,9 +105,15 @@ data PFArrow = PFArrow
 \begin{code}
 instance JSON PFArrow where
     showJSON pfa = makeObj
-                   [ ("ouput", showJSON . pfaOuput $ pfa)
+                   [ ("output", showJSON . pfaOuput $ pfa)
                    , ("input", showJSON . pfaInput $ pfa)]
-    readJSON _ = Error "not implemented"
+    readJSON (JSObject obj) = let
+      jsonObjAssoc = fromJSObject obj
+      in do
+        os <- jsonLookup "output" jsonObjAssoc >>= readJSON
+        is <- jsonLookup "input" jsonObjAssoc >>= readJSON
+        return $ PFArrow os is
+    readJSON _ = fail "invalid PFArrow"
 \end{code}
 
 \begin{code}
@@ -104,20 +127,46 @@ data ProgramFlow = ProgramFlow
 \begin{code}
 instance JSON ProgramFlow where
     showJSON pfn = makeObj
-                   [ ("kernels", mapToObj . pfKernels $ pfn)
+                   [ ("kernels", smapToObj . pfKernels $ pfn)
                    , ("nodes", showJSON . pfNodes $ pfn)
                    , ("arrows", showJSON . pfArrows $ pfn)]
-    readJSON _ = Error "not implemented"
-\end{code}
-
-\begin{code}
-mapToObj :: JSON a => M.Map String a -> JSValue
-mapToObj = makeObj . map (second showJSON) . M.assocs
+    readJSON (JSObject obj) = let
+      jsonObjAssoc = fromJSObject obj
+      in do
+        ks <- jsonLookup "kernels" jsonObjAssoc >>= objToSmap
+        ns <- jsonLookup "nodes" jsonObjAssoc >>= readJSON
+        as <- jsonLookup "arrows" jsonObjAssoc >>= readJSON
+        return $ ProgramFlow ks ns as
+    readJSON _ = Error "invalid ProgramFlow"
 \end{code}
 
 \begin{code}
 emptyProgramFlow :: ProgramFlow
 emptyProgramFlow = ProgramFlow M.empty MI.empty []
+\end{code}
+
+\begin{code}
+exampleKernel :: PFKernel
+exampleKernel = PFKernel "" 
+              (M.fromList [
+                  ("i1",PFIOPoint IOfloat4 InputPoint),
+                  ("o1",PFIOPoint IOfloat4 OutputPoint)])
+
+exampleProgramFlow :: ProgramFlow
+exampleProgramFlow = emptyProgramFlow {
+  pfKernels= M.fromList [
+     ("kuno", exampleKernel),
+     ("kdos", PFKernel "" 
+              (M.fromList [
+                  ("i1",PFIOPoint IOfloat4 InputPoint),
+                  ("i2",PFIOPoint IOchar InputPoint),
+                  ("i3",PFIOPoint IOlong InputPoint),
+                  ("o1",PFIOPoint IOfloat4 OutputPoint)]))],
+  pfNodes= MI.fromList [(0, PFNode "kuno"),
+                        (1, PFNode "kuno"),
+                        (2, PFNode "kdos")],
+  pfArrows= [PFArrow (0,"o1") (1,"i1"), PFArrow (1,"o1") (2,"i1")]
+  }
 \end{code}
 
 \begin{code}
