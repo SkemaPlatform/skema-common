@@ -25,6 +25,7 @@ import Test.QuickCheck
   ( Testable, Arbitrary(..), Args(..), stdArgs, quickCheckWith, elements, 
     suchThat )
 import Text.Printf( printf )
+import Text.JSON( encode, decode, Result(..) )
 import Control.Monad( replicateM )
 import Data.Char( isHexDigit )
 import qualified Data.ByteString.Lazy.Char8 as LC
@@ -130,8 +131,9 @@ prop_hexByteString_ident xs = (hexByteString . byteStringHex) xs == xs
 Skema.JSON tests
 
 \begin{code}
-prop_prettyjson_length :: String -> Bool
-prop_prettyjson_length st = length st <= (length . prettyJSON) st
+prop_prettyjson_length :: ProgramFlow -> Bool
+prop_prettyjson_length pf = length st <= (length . prettyJSON) st
+  where st = encode pf
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -143,20 +145,44 @@ prop_jsonProgramFlow pf = generateJSONString pf /= ""
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Skema.Types tests
+
 \begin{code}
-myArgs :: Args
-myArgs = stdArgs { maxSuccess=500 }
-myCheck :: Testable prop => prop -> IO ()
-myCheck = quickCheckWith myArgs
+prop_read_IOPointDataType :: Int -> IOPointDataType -> Bool
+prop_read_IOPointDataType d x = any (==(x,"")) (readsPrec d (showsPrec d x ""))
+\end{code}
+
+\begin{code}
+prop_json_IOPointDataType :: IOPointDataType -> Bool
+prop_json_IOPointDataType v = (decode . encode) v == Ok v
+\end{code}
+
+\begin{code}
+prop_json_IOPointType :: IOPointType -> Bool
+prop_json_IOPointType v = (decode . encode) v == Ok v
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+longCheck :: Testable prop => prop -> IO ()
+longCheck = quickCheckWith stdArgs { maxSuccess=500 }
+\end{code}
+
+\begin{code}
+fastCheck :: Testable prop => prop -> IO ()
+fastCheck = quickCheckWith stdArgs { maxSuccess=500, maxSize=10 }
 \end{code}
 
 \begin{code}
 tests :: [(String, IO ())]
 tests = [
-  ("Skema.Util: hex -> ByteString", myCheck prop_hexByteString),
-  ("Skema.Util: hex <-> ByteString id", myCheck prop_hexByteString_ident),
-  ("Skema.JSON: prettyJSON length", myCheck prop_prettyjson_length),
-  ("Skema.ProgramFlow: ProgramFlow -> JSON", myCheck prop_jsonProgramFlow) 
+  ("Skema.Types: read IOPointDataType", longCheck prop_read_IOPointDataType),
+  ("Skema.Types: json IOPointDataType", longCheck prop_json_IOPointDataType),
+  ("Skema.Types: json IOPointType", longCheck prop_json_IOPointType),
+  ("Skema.Util: hex -> ByteString", longCheck prop_hexByteString),
+  ("Skema.Util: hex <-> ByteString id",longCheck prop_hexByteString_ident),
+  ("Skema.JSON: prettyJSON length", fastCheck prop_prettyjson_length),
+  ("Skema.ProgramFlow: ProgramFlow -> JSON", longCheck prop_jsonProgramFlow) 
  ]
 \end{code}
 
