@@ -15,18 +15,39 @@
 % along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-module Skema.JSON( prettyJSON, jsonLookup ) where
+module Skema.JSON( prettyJSON, jsonLookup, smapToObj, objToSmap ) where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-import Text.JSON( Result )
+import Text.JSON( JSON(..), Result(..), JSValue(..), makeObj, fromJSObject )
+import qualified Data.Map as M( Map, assocs, fromList )
+import Control.Arrow( second )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 jsonLookup :: String -> [(String, a)] -> Result a
 jsonLookup a as = maybe (fail $ "No element: " ++ a) return (lookup a as)
+\end{code}
+
+\begin{code}
+smapToObj :: JSON a => M.Map String a -> JSValue
+smapToObj = makeObj . map (second showJSON) . M.assocs
+\end{code}
+
+\begin{code}
+extractResult :: (a,Result b) -> Result (a,b)
+extractResult (_, Error e) = Error e
+extractResult (a, Ok b) = Ok (a,b)
+\end{code}
+
+\begin{code}
+objToSmap :: JSON a => JSValue -> Result (M.Map String a)
+objToSmap (JSObject obj) = do
+  vals <- sequence . map (extractResult . second readJSON) $ fromJSObject obj
+  return $ M.fromList vals
+objToSmap _ = fail "2"
 \end{code}
 
 \begin{code}
