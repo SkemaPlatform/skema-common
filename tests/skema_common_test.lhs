@@ -33,6 +33,7 @@ import qualified Data.ByteString.Lazy.Char8 as LC
 import qualified Data.ByteString.Char8 as BC( ByteString, null, pack )
 import qualified Data.Map as M( Map, fromList, size, keys )
 import qualified Data.IntMap as IM( IntMap, fromList )
+import Skema.Math( deg2rad, rad2deg )
 import Skema.Types( IOPointType(..), IOPointDataType(..) )
 import Skema.Util( hexByteString, byteStringHex )
 import Skema.JSON( prettyJSON )
@@ -112,6 +113,14 @@ instance Arbitrary ProgramFlow where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Skema.Math tests
+
+\begin{code}
+prop_rad2deg :: Double -> Bool
+prop_rad2deg a = abs ((rad2deg . deg2rad) a - a) < 0.001
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Skema.Util tests
 
 \begin{code}
@@ -176,6 +185,7 @@ fastCheck = quickCheckWith stdArgs { maxSuccess=500, maxSize=10 }
 \begin{code}
 tests :: [(String, IO ())]
 tests = [
+  ("Skema.Math: radians to degrees", longCheck prop_rad2deg),
   ("Skema.Types: read IOPointDataType", longCheck prop_read_IOPointDataType),
   ("Skema.Types: json IOPointDataType", longCheck prop_json_IOPointDataType),
   ("Skema.Types: json IOPointType", longCheck prop_json_IOPointType),

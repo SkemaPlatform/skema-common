@@ -19,6 +19,7 @@ Library
   extensions: CPP
   Exposed-modules:
     Skema.Util
+    Skema.Math
     Skema.JSON
     Skema.Types
     Skema.ProgramFlow
