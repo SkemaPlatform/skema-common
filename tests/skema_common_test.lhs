@@ -24,8 +24,9 @@ module Main( main ) where
 import Test.QuickCheck
   ( Testable, Arbitrary(..), Args(..), stdArgs, quickCheckWith, elements, 
     suchThat )
+import Test.QuickCheck.Property( Result, succeeded, failed )
 import Text.Printf( printf )
-import Text.JSON( encode, decode, Result(..) )
+import qualified Text.JSON as JSON( encode, decode, Result(..) )
 import Control.Monad( replicateM )
 import Data.Char( isHexDigit )
 import qualified Data.ByteString.Lazy.Char8 as LC
@@ -39,7 +40,7 @@ import Skema.Util( hexByteString, byteStringHex )
 import Skema.JSON( prettyJSON )
 import Skema.ProgramFlow
   ( PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), ProgramFlow(..), 
-    generateJSONString )
+    generateJSONString, exampleProgramFlow )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -142,7 +143,7 @@ Skema.JSON tests
 \begin{code}
 prop_prettyjson_length :: ProgramFlow -> Bool
 prop_prettyjson_length pf = length st <= (length . prettyJSON) st
-  where st = encode pf
+  where st = JSON.encode pf
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -151,6 +152,16 @@ Skema.Programflow tests
 \begin{code}
 prop_jsonProgramFlow :: ProgramFlow -> Bool
 prop_jsonProgramFlow pf = generateJSONString pf /= ""
+\end{code}
+
+\begin{code}
+prop_encodeExample :: Result
+prop_encodeExample = case gend of
+  JSON.Ok _ -> succeeded
+  _ -> failed
+  where
+    trans = JSON.decode . JSON.encode
+    gend = (trans exampleProgramFlow) :: (JSON.Result ProgramFlow)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -163,18 +174,23 @@ prop_read_IOPointDataType d x = any (==(x,"")) (readsPrec d (showsPrec d x ""))
 
 \begin{code}
 prop_json_IOPointDataType :: IOPointDataType -> Bool
-prop_json_IOPointDataType v = (decode . encode) v == Ok v
+prop_json_IOPointDataType v = (JSON.decode . JSON.encode) v == JSON.Ok v
 \end{code}
 
 \begin{code}
 prop_json_IOPointType :: IOPointType -> Bool
-prop_json_IOPointType v = (decode . encode) v == Ok v
+prop_json_IOPointType v = (JSON.decode . JSON.encode) v == JSON.Ok v
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 longCheck :: Testable prop => prop -> IO ()
 longCheck = quickCheckWith stdArgs { maxSuccess=500 }
+\end{code}
+
+\begin{code}
+oneCheck :: Testable prop => prop -> IO ()
+oneCheck = quickCheckWith stdArgs { maxSuccess=1 }
 \end{code}
 
 \begin{code}
@@ -192,6 +208,7 @@ tests = [
   ("Skema.Util: hex -> ByteString", longCheck prop_hexByteString),
   ("Skema.Util: hex <-> ByteString id",longCheck prop_hexByteString_ident),
   ("Skema.JSON: prettyJSON length", fastCheck prop_prettyjson_length),
+  ("Skema.ProgramFlow: encode Example", oneCheck prop_encodeExample),
   ("Skema.ProgramFlow: ProgramFlow -> JSON", longCheck prop_jsonProgramFlow) 
  ]
 \end{code}
