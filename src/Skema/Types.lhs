@@ -20,104 +20,94 @@ module Skema.Types( IOPointType(..), IOPointDataType(..) ) where
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-import Text.JSON( JSON(..), Result(..), showJSON )
+import Text.JSON( JSON(..), JSValue(..), Result(..), fromJSString )
+import Data.Tuple( swap )
+import qualified Data.Map as M( Map, (!), fromList, lookup )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 data IOPointType = InputPoint
                  | OutputPoint
-                   deriving( Show, Eq )
+                   deriving( Show, Read, Eq, Enum, Bounded )
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+data IOPointDataType = IOchar | IOuchar | IOshort | IOushort
+                     | IOint | IOuint | IOlong | IOulong
+                     | IOfloat
+                     | IOchar2 | IOuchar2 | IOshort2 | IOushort2
+                     | IOint2 | IOuint2 | IOlong2 | IOulong2
+                     | IOfloat2
+                     | IOchar4 | IOuchar4 | IOshort4 | IOushort4
+                     | IOint4 | IOuint4 | IOlong4 | IOulong4
+                     | IOfloat4
+                     | IOchar8 | IOuchar8 | IOshort8 | IOushort8
+                     | IOint8 | IOuint8 | IOlong8 | IOulong8
+                     | IOfloat8
+                     | IOchar16 | IOuchar16 | IOshort16 | IOushort16
+                     | IOint16 | IOuint16 | IOlong16 | IOulong16
+                     | IOfloat16
+                     deriving( Eq, Enum, Ord, Bounded )
 \end{code}
 
 \begin{code}
-data IOPointDataType = IOchar | IOuchar
-                     | IOshort | IOushort
-                     | IOint | IOuint
-                     | IOlong | IOulong
-                     | IOfloat
-                     | IOchar2 | IOuchar2
-                     | IOshort2 | IOushort2
-                     | IOint2 | IOuint2
-                     | IOlong2 | IOulong2
-                     | IOfloat2
-                     | IOchar4 | IOuchar4
-                     | IOshort4 | IOushort4
-                     | IOint4 | IOuint4
-                     | IOlong4 | IOulong4
-                     | IOfloat4
-                     | IOchar8 | IOuchar8
-                     | IOshort8 | IOushort8
-                     | IOint8 | IOuint8
-                     | IOlong8 | IOulong8
-                     | IOfloat8
-                     | IOchar16 | IOuchar16
-                     | IOshort16 | IOushort16
-                     | IOint16 | IOuint16
-                     | IOlong16 | IOulong16
-                     | IOfloat16
-                     deriving( Eq )
+dataTypeNames :: [(IOPointDataType,String)]
+dataTypeNames = [
+  (IOchar, "char"), (IOuchar, "uchar"), (IOshort, "short"),
+  (IOushort, "ushort"), (IOint, "int"), (IOuint, "uint"), (IOlong, "long"),
+  (IOulong, "ulong"), (IOfloat, "float"), (IOchar2, "char2"), 
+  (IOuchar2, "uchar2"), (IOshort2, "short2"), (IOushort2, "ushort2"),
+  (IOint2, "int2"), (IOuint2, "uint2"), (IOlong2, "long2"), 
+  (IOulong2, "ulong2"), (IOfloat2, "float2"), (IOchar4, "char4"),
+  (IOuchar4, "uchar4"), (IOshort4, "short4"), (IOushort4, "ushort4"),
+  (IOint4, "int4"), (IOuint4, "uint4"), (IOlong4, "long4"), 
+  (IOulong4, "ulong4"), (IOfloat4, "float4"), (IOchar8, "char8"),
+  (IOuchar8, "uchar8"), (IOshort8, "short8"), (IOushort8, "ushort8"),
+  (IOint8, "int8"), (IOuint8, "uint8"), (IOlong8, "long8"), 
+  (IOulong8, "ulong8"), (IOfloat8, "float8"), (IOchar16, "char16"),
+  (IOuchar16, "uchar16"), (IOshort16, "short16"), (IOushort16, "ushort16"),
+  (IOint16, "int16"), (IOuint16, "uint16"), (IOlong16, "long16"),
+  (IOulong16, "ulong16"), (IOfloat16, "float16")]
+
+dataTypeShowTable :: M.Map IOPointDataType String
+dataTypeShowTable = M.fromList $ dataTypeNames
+
+dataTypeReadTable :: M.Map String IOPointDataType
+dataTypeReadTable = M.fromList . map swap $ dataTypeNames
 \end{code}
 
 \begin{code}
 instance Show IOPointDataType where
-  show IOchar = "char"
-  show IOuchar = "uchar"
-  show IOshort = "short"
-  show IOushort = "ushort"
-  show IOint = "int"
-  show IOuint = "uint"
-  show IOlong = "long"
-  show IOulong = "ulong"
-  show IOfloat = "float"
-  show IOchar2 = "char2"
-  show IOuchar2 = "uchar2"
-  show IOshort2 = "short2"
-  show IOushort2 = "ushort2"
-  show IOint2 = "int2"
-  show IOuint2 = "uint2"
-  show IOlong2 = "long2"
-  show IOulong2 = "ulong2"
-  show IOfloat2 = "float2"
-  show IOchar4 = "char4"
-  show IOuchar4 = "uchar4"
-  show IOshort4 = "short4"
-  show IOushort4 = "ushort4"
-  show IOint4 = "int4"
-  show IOuint4 = "uint4"
-  show IOlong4 = "long4"
-  show IOulong4 = "ulong4"
-  show IOfloat4 = "float4"
-  show IOchar8 = "char8"
-  show IOuchar8 = "uchar8"
-  show IOshort8 = "short8"
-  show IOushort8 = "ushort8"
-  show IOint8 = "int8"
-  show IOuint8 = "uint8"
-  show IOlong8 = "long8"
-  show IOulong8 = "ulong8"
-  show IOfloat8 = "float8"
-  show IOchar16 = "char16"
-  show IOuchar16 = "uchar16"
-  show IOshort16 = "short16"
-  show IOushort16 = "ushort16"
-  show IOint16 = "int16"
-  show IOuint16 = "uint16"
-  show IOlong16 = "long16"
-  show IOulong16 = "ulong16"
-  show IOfloat16 = "float16"
+  show v = dataTypeShowTable M.! v
+\end{code}
+
+\begin{code}
+instance Read IOPointDataType where
+  readsPrec _ r = do
+    (k,t) <- lex r
+    case M.lookup k dataTypeReadTable of
+      Nothing -> []
+      Just v -> [(v,t)]
 \end{code}
 
 \begin{code}
 instance JSON IOPointType where
     showJSON = showJSON . show
-    readJSON _ = Error "not implemented"
+    readJSON (JSString v) = case (reads . fromJSString $ v) of
+      [] -> Error "invalid string for IOPointType"
+      (iot,_):_ -> Ok iot
+    readJSON _ = Error "invalid value for IOPointType"
 \end{code}
 
 \begin{code}
 instance JSON IOPointDataType where
     showJSON = showJSON . show
-    readJSON _ = Error "not implemented"
+    readJSON (JSString v) = case (reads . fromJSString $ v) of
+      [] -> Error "invalid string for IOPointDataType"
+      (iot,_):_ -> Ok iot
+    readJSON _ = Error "invalid value for IOPointDataType"
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
