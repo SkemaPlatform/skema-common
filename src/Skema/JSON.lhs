@@ -15,10 +15,20 @@
 % along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-module Skema.JSON( prettyJSON ) where
+module Skema.JSON( prettyJSON, jsonLookup ) where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+import Text.JSON( Result )
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+jsonLookup :: String -> [(String, a)] -> Result a
+jsonLookup a as = maybe (fail $ "No element: " ++ a) return (lookup a as)
+\end{code}
+
 \begin{code}
 prettyJSON :: String -> String
 prettyJSON buff = prettyJSON' buff 0
