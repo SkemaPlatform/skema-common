@@ -18,7 +18,7 @@
 module Skema.ProgramFlow
     ( PFIOPoint(..), PFKernel(..), ProgramFlow(..), PFNode(..), PFArrow(..)
     , emptyProgramFlow, exampleProgramFlow, generateJSONString
-    , programFlowHash ) where
+    , decodeJSONString, programFlowHash ) where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -28,7 +28,7 @@ import Data.Digest.Pure.SHA( sha256, bytestringDigest )
 import qualified Data.IntMap as MI( IntMap, empty, fromList )
 import qualified Data.Map as M( Map, empty, fromList )
 import Text.JSON
-    ( Result(..), JSON(..), JSValue(..), makeObj, encode, fromJSObject )
+    ( Result(..), JSON(..), JSValue(..), makeObj, encode, decode, fromJSObject )
 import Skema.Types( IOPointType(..), IOPointDataType(..) )
 import Skema.JSON( smapToObj, objToSmap, jsonLookup )
 \end{code}
@@ -175,6 +175,13 @@ exampleProgramFlow = emptyProgramFlow {
 \begin{code}
 generateJSONString :: ProgramFlow -> String
 generateJSONString = encode . showJSON
+\end{code}
+
+\begin{code}
+decodeJSONString :: String -> Either String ProgramFlow
+decodeJSONString cad = case decode cad of
+  Ok pf -> Right pf
+  Error msg -> Left msg
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
