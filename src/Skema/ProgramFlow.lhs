@@ -17,16 +17,20 @@
 \begin{code}
 module Skema.ProgramFlow
     ( PFIOPoint(..), PFKernel(..), ProgramFlow(..), PFNode(..), PFArrow(..)
-    , emptyProgramFlow, exampleProgramFlow, generateJSONString
-    , decodeJSONString, programFlowHash ) where
+    , IOPoint(..), emptyProgramFlow, exampleProgramFlow, generateJSONString
+    , decodeJSONString, programFlowHash, outputPoints, inputPoints
+    , unasignedOutputPoints, unasignedInputPoints ) 
+    where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+import Control.Arrow( second )
+import Data.Maybe( mapMaybe )
 import Data.ByteString.Lazy.Char8( ByteString, pack )
 import Data.Digest.Pure.SHA( sha256, bytestringDigest )
-import qualified Data.IntMap as MI( IntMap, empty, fromList )
-import qualified Data.Map as M( Map, empty, fromList )
+import qualified Data.IntMap as MI( IntMap, empty, fromList, assocs )
+import qualified Data.Map as M( Map, empty, fromList, assocs, lookup )
 import Text.JSON
     ( Result(..), JSON(..), JSValue(..), makeObj, encode, decode, fromJSObject )
 import Skema.Types( IOPointType(..), IOPointDataType(..) )
@@ -38,7 +42,7 @@ import Skema.JSON( smapToObj, objToSmap, jsonLookup )
 data PFIOPoint = PFIOPoint
     { pfIOPDataType :: !IOPointDataType 
     , pfIOPType :: !IOPointType }
-    deriving( Show )
+    deriving( Show, Eq )
 \end{code}
 
 \begin{code}
@@ -59,7 +63,7 @@ instance JSON PFIOPoint where
 data PFKernel = PFKernel
     { pfkBody :: !String
     , pfkIOPoints :: M.Map String PFIOPoint }
-    deriving( Show )
+    deriving( Show, Eq )
 \end{code}
 
 \begin{code}
@@ -79,7 +83,7 @@ instance JSON PFKernel where
 \begin{code}
 data PFNode = PFNode
     { pfnIndex :: !String }
-    deriving( Show )
+    deriving( Show, Eq )
 \end{code}
 
 \begin{code}
@@ -102,7 +106,7 @@ type PFArrowPoint = (Int,String)
 data PFArrow = PFArrow
     { pfaOuput :: !PFArrowPoint 
     , pfaInput :: !PFArrowPoint }
-               deriving( Show )
+               deriving( Show, Eq )
 \end{code}
 
 \begin{code}
@@ -124,7 +128,7 @@ data ProgramFlow = ProgramFlow
     { pfKernels :: M.Map String PFKernel
     , pfNodes :: MI.IntMap PFNode 
     , pfArrows :: [PFArrow]}
-    deriving( Show )
+    deriving( Show, Eq )
 \end{code}
 
 \begin{code}
@@ -188,6 +192,73 @@ decodeJSONString cad = case decode cad of
 \begin{code}
 programFlowHash :: ProgramFlow -> ByteString    
 programFlowHash = bytestringDigest.sha256 . pack . generateJSONString
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+data IOPoint = IOPoint
+    { iopType :: !IOPointType
+    , iopDataType :: !IOPointDataType
+    , iopNode :: !Int
+    , iopPoint :: !String}
+               deriving( Show, Eq )
+\end{code}
+
+\begin{code}
+kernelOutputPoints :: PFKernel -> [(String,PFIOPoint)]
+kernelOutputPoints = filter isOutput . M.assocs . pfkIOPoints
+  where
+    isOutput = (==OutputPoint).pfIOPType.snd
+\end{code}
+
+\begin{code}
+kernelInputPoints :: PFKernel -> [(String,PFIOPoint)]
+kernelInputPoints = filter isInput . M.assocs . pfkIOPoints
+  where
+    isInput = (==InputPoint).pfIOPType.snd
+\end{code}
+
+\begin{code}
+createIOPoint :: Int -> (String, PFIOPoint) -> IOPoint
+createIOPoint idx (n, p) = IOPoint (pfIOPType p) (pfIOPDataType p) idx n
+\end{code}
+
+\begin{code}
+kernelLookup :: ProgramFlow -> (a,PFNode) -> Maybe (a,PFKernel)
+kernelLookup pf (k,n) = maybe Nothing (Just.((,) k)) (M.lookup key kernels)
+  where 
+    key = pfnIndex n
+    kernels = (pfKernels pf)
+\end{code}
+
+\begin{code}
+outputPoints :: ProgramFlow -> [IOPoint]
+outputPoints pf = concatMap (\(i,xs) -> map (createIOPoint i) xs) . map (second kernelOutputPoints) . mapMaybe (kernelLookup pf)$ nodes
+  where
+    nodes = MI.assocs $ pfNodes pf
+\end{code}
+
+\begin{code}
+inputPoints :: ProgramFlow -> [IOPoint]
+inputPoints pf = concatMap (\(i,xs) -> map (createIOPoint i) xs) . map (second kernelInputPoints) . mapMaybe (kernelLookup pf)$ nodes
+  where
+    nodes = MI.assocs $ pfNodes pf
+\end{code}
+
+\begin{code}
+unasignedOutputPoints :: ProgramFlow -> [IOPoint]
+unasignedOutputPoints pf = filter ((`elem`arrows).extract) $ outputPoints pf
+  where
+    arrows = map pfaOuput $ pfArrows pf
+    extract p = (iopNode p, iopPoint p)
+\end{code}
+
+\begin{code}
+unasignedInputPoints :: ProgramFlow -> [IOPoint]
+unasignedInputPoints pf = filter ((`elem`arrows).extract) $ inputPoints pf
+  where
+    arrows = map pfaInput $ pfArrows pf
+    extract p = (iopNode p, iopPoint p)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
