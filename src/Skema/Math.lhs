@@ -15,6 +15,7 @@
 % along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | Mathematical Utilities for Skema programs
 module Skema.Math( deg2rad, rad2deg ) where
 \end{code}
 

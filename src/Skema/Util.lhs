@@ -15,6 +15,7 @@
 % along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | General functions for Skema programs
 module Skema.Util( byteStringHex, hexByteString ) where
 \end{code}
 
@@ -27,6 +28,7 @@ import Data.Char( intToDigit, digitToInt )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | 'byteStringHex' converta a ByteString to a Hexadecimal representation.
 byteStringHex :: ByteString -> String
 byteStringHex bs = foldr paddedShowHex [] . unpack $ bs
  where
@@ -37,6 +39,8 @@ byteStringHex bs = foldr paddedShowHex [] . unpack $ bs
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | 'hexByteString' converta a hexadecimal representation of a ByteString to 
+-- the ByteString itself.
 hexByteString :: String -> ByteString
 hexByteString = pack . map (fromInteger.toInteger).groupBinary . map digitToInt
   where
