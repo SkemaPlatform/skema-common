@@ -15,7 +15,7 @@ flag testing
 Library
   hs-source-dirs:  src
   ghc-options:     -Wall
-  Build-Depends:   base==4.*, containers>=0.3, bytestring==0.9.1.*, json==0.4.*, SHA==1.5.*
+  Build-Depends:   base==4.*, containers>=0.3, bytestring==0.9.1.*, json==0.4.*, SHA==1.5.*, hgettext==0.1.*
   extensions: CPP
   Exposed-modules:
     Skema.Util
@@ -31,7 +31,7 @@ Executable skema-common-test
   hs-source-dirs:  src tests
   ghc-options:     -Wall -fhpc -Werror
   Main-is:         skema_common_test.lhs
-  Build-Depends:   base==4.*, QuickCheck >= 2, containers>=0.3, bytestring==0.9.1.*, json==0.4.*, SHA==1.5.*
+  Build-Depends:   base==4.*, QuickCheck >= 2, containers>=0.3, bytestring==0.9.1.*, json==0.4.*, SHA==1.5.*, hgettext==0.1.*
   cpp-options:   -DTESTING
 
   if flag(testing)
