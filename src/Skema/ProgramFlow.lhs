@@ -17,11 +17,14 @@
 \begin{code}
 module Skema.ProgramFlow
     ( PFIOPoint(..), PFKernel(..), ProgramFlow(..), PFNode(..), PFArrow(..)
-    , emptyProgramFlow, exampleProgramFlow, generateJSONString ) where
+    , emptyProgramFlow, exampleProgramFlow, generateJSONString
+    , programFlowHash ) where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+import Data.ByteString.Lazy.Char8( ByteString, pack )
+import Data.Digest.Pure.SHA( sha256, bytestringDigest )
 import qualified Data.IntMap as MI( IntMap, empty, fromList )
 import qualified Data.Map as M( Map, empty, fromList )
 import Text.JSON
@@ -172,6 +175,12 @@ exampleProgramFlow = emptyProgramFlow {
 \begin{code}
 generateJSONString :: ProgramFlow -> String
 generateJSONString = encode . showJSON
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+programFlowHash :: ProgramFlow -> ByteString    
+programFlowHash = bytestringDigest.sha256 . pack . generateJSONString
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
