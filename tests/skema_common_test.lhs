@@ -29,6 +29,7 @@ import Text.Printf( printf )
 import qualified Text.JSON as JSON( encode, decode, Result(..) )
 import Control.Monad( replicateM )
 import Data.Char( isHexDigit )
+import Data.List( intersect )
 import qualified Data.ByteString.Lazy.Char8 as LC
   ( ByteString, fromChunks, length )
 import qualified Data.ByteString.Char8 as BC( ByteString, null, pack )
@@ -40,7 +41,8 @@ import Skema.Util( hexByteString, byteStringHex )
 import Skema.JSON( prettyJSON )
 import Skema.ProgramFlow
   ( PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), ProgramFlow(..), 
-    generateJSONString, exampleProgramFlow )
+    generateJSONString, exampleProgramFlow, unasignedOutputPoints, 
+    unasignedInputPoints, decodeJSONString )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -151,7 +153,11 @@ Skema.Programflow tests
 
 \begin{code}
 prop_jsonProgramFlow :: ProgramFlow -> Bool
-prop_jsonProgramFlow pf = generateJSONString pf /= ""
+prop_jsonProgramFlow pf = case decodeJSONString cad of
+  Left _ -> False
+  Right newpf -> newpf == pf
+  where
+    cad = generateJSONString pf
 \end{code}
 
 \begin{code}
@@ -162,6 +168,14 @@ prop_encodeExample = case gend of
   where
     trans = JSON.decode . JSON.encode
     gend = (trans exampleProgramFlow) :: (JSON.Result ProgramFlow)
+\end{code}
+
+\begin{code}
+prop_unasignedpoints :: ProgramFlow -> Bool
+prop_unasignedpoints pf = uai `intersect` uao == []
+  where
+    uai = unasignedInputPoints pf
+    uao = unasignedOutputPoints pf
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -209,7 +223,8 @@ tests = [
   ("Skema.Util: hex <-> ByteString id",longCheck prop_hexByteString_ident),
   ("Skema.JSON: prettyJSON length", fastCheck prop_prettyjson_length),
   ("Skema.ProgramFlow: encode Example", oneCheck prop_encodeExample),
-  ("Skema.ProgramFlow: ProgramFlow -> JSON", longCheck prop_jsonProgramFlow) 
+  ("Skema.ProgramFlow: ProgramFlow -> JSON", fastCheck prop_jsonProgramFlow),
+  ("Skema.ProgramFlow: unasigned points", fastCheck prop_unasignedpoints) 
  ]
 \end{code}
 
