@@ -21,8 +21,15 @@ module Skema.Types( IOPointType(..), IOPointDataType(..) ) where
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 import Text.JSON( JSON(..), JSValue(..), Result(..), fromJSString )
-import Data.Tuple( swap )
+--import Data.Tuple( swap )
 import qualified Data.Map as M( Map, (!), fromList, lookup )
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Swap is available in Base 4.3.1.* but not in 4.2.0.*
+\begin{code}
+swap :: (a,b) -> (b,a)
+swap (a,b) = (b,a)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
