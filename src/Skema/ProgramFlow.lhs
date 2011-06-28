@@ -247,7 +247,7 @@ inputPoints pf = concatMap (\(i,xs) -> map (createIOPoint i) xs) . map (second k
 
 \begin{code}
 unasignedOutputPoints :: ProgramFlow -> [IOPoint]
-unasignedOutputPoints pf = filter ((`elem`arrows).extract) $ outputPoints pf
+unasignedOutputPoints pf = filter (not.(`elem`arrows).extract) $ outputPoints pf
   where
     arrows = map pfaOuput $ pfArrows pf
     extract p = (iopNode p, iopPoint p)
@@ -255,7 +255,7 @@ unasignedOutputPoints pf = filter ((`elem`arrows).extract) $ outputPoints pf
 
 \begin{code}
 unasignedInputPoints :: ProgramFlow -> [IOPoint]
-unasignedInputPoints pf = filter ((`elem`arrows).extract) $ inputPoints pf
+unasignedInputPoints pf = filter (not.(`elem`arrows).extract) $ inputPoints pf
   where
     arrows = map pfaInput $ pfArrows pf
     extract p = (iopNode p, iopPoint p)
