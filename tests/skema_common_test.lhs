@@ -43,6 +43,7 @@ import Skema.ProgramFlow
   ( PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), ProgramFlow(..), 
     generateJSONString, exampleProgramFlow, unasignedOutputPoints, 
     unasignedInputPoints, decodeJSONString )
+import Skema.Network()
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
