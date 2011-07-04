@@ -155,7 +155,7 @@ emptyProgramFlow = ProgramFlow M.empty MI.empty []
 
 \begin{code}
 exampleKernel :: PFKernel
-exampleKernel = PFKernel "" 
+exampleKernel = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];" 
               (M.fromList [
                   ("i1",PFIOPoint IOfloat4 InputPoint),
                   ("o1",PFIOPoint IOfloat4 OutputPoint)])
