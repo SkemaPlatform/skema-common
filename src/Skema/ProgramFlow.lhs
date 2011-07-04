@@ -19,7 +19,7 @@ module Skema.ProgramFlow
     ( PFIOPoint(..), PFKernel(..), ProgramFlow(..), PFNode(..), PFArrow(..)
     , IOPoint(..), emptyProgramFlow, exampleProgramFlow, generateJSONString
     , decodeJSONString, programFlowHash, outputPoints, inputPoints
-    , unasignedOutputPoints, unasignedInputPoints ) 
+    , unasignedOutputPoints, unasignedInputPoints, openclKernelSource ) 
     where
 \end{code}
 
@@ -27,6 +27,7 @@ module Skema.ProgramFlow
 \begin{code}
 import Control.Arrow( second )
 import Data.Maybe( mapMaybe )
+import Data.List( intercalate )
 import Data.ByteString.Lazy.Char8( ByteString, pack )
 import Data.Digest.Pure.SHA( sha256, bytestringDigest )
 import qualified Data.IntMap as MI( IntMap, empty, fromList, assocs )
@@ -259,6 +260,17 @@ unasignedInputPoints pf = filter (not.(`elem`arrows).extract) $ inputPoints pf
   where
     arrows = map pfaInput $ pfArrows pf
     extract p = (iopNode p, iopPoint p)
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+openclKernelSource :: String -> PFKernel -> String
+openclKernelSource name krn = concat ["__kernel void ", name, 
+                                      "( ", parameters, " ){\n", 
+                                      pfkBody krn, "\n}"]
+  where
+    parameters = intercalate ", " $ map parameter $ M.assocs $ pfkIOPoints krn
+    parameter (pn,t) = concat["__global ", show $ pfIOPDataType t, " *", pn]
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
