@@ -37,7 +37,7 @@ import qualified Data.Map as M( Map, fromList, size, keys )
 import qualified Data.IntMap as IM( IntMap, fromList )
 import Skema.Math( deg2rad, rad2deg )
 import Skema.Types( IOPointType(..), IOPointDataType(..) )
-import Skema.Util( hexByteString, byteStringHex )
+import Skema.Util( hexByteString, byteStringHex, __ )
 import Skema.JSON( prettyJSON )
 import Skema.ProgramFlow
   ( PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), ProgramFlow(..), 
@@ -140,6 +140,11 @@ prop_hexByteString_ident :: LC.ByteString -> Bool
 prop_hexByteString_ident xs = (hexByteString . byteStringHex) xs == xs
 \end{code}
 
+\begin{code}
+prop_i18n :: String -> Bool
+prop_i18n xs = '\NUL' `elem` xs || __ xs == xs
+\end{code}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Skema.JSON tests
 
@@ -222,6 +227,7 @@ tests = [
   ("Skema.Types: json IOPointType", longCheck prop_json_IOPointType),
   ("Skema.Util: hex -> ByteString", longCheck prop_hexByteString),
   ("Skema.Util: hex <-> ByteString id",longCheck prop_hexByteString_ident),
+  ("Skema.Util: i18n",longCheck prop_i18n),
   ("Skema.JSON: prettyJSON length", fastCheck prop_prettyjson_length),
   ("Skema.ProgramFlow: encode Example", oneCheck prop_encodeExample),
   ("Skema.ProgramFlow: ProgramFlow -> JSON", fastCheck prop_jsonProgramFlow),
