@@ -16,10 +16,16 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 module Skema.ProgramFlow
-    ( PFIOPoint(..), PFKernel(..), ProgramFlow(..), PFNode(..), PFArrow(..)
-    , IOPoint(..), emptyProgramFlow, exampleProgramFlow, generateJSONString
-    , decodeJSONString, programFlowHash, outputPoints, inputPoints
-    , unasignedOutputPoints, unasignedInputPoints, openclKernelSource ) 
+    ( 
+      -- * Types
+      PFIOPoint(..), PFKernel(..), ProgramFlow(..), PFNode(..), PFArrow(..), 
+      IOPoint(..), 
+      -- * Basic values
+      emptyProgramFlow, exampleProgramFlow, 
+      -- * Utility functions
+      generateJSONString, decodeJSONString, programFlowHash, outputPoints, 
+      inputPoints, unasignedOutputPoints, unasignedInputPoints, 
+      openclKernelSource ) 
     where
 \end{code}
 
