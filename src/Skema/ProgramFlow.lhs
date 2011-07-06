@@ -18,14 +18,16 @@
 module Skema.ProgramFlow
     ( 
       -- * Types
-      PFIOPoint(..), PFKernel(..), ProgramFlow(..), PFNode(..), PFArrow(..), 
-      IOPoint(..), 
+      PFArrowPoint, PFIOPoint(..), PFKernel(..), ProgramFlow(..), PFNode(..), 
+      PFArrow(..), IOPoint(..), 
       -- * Basic values
       emptyProgramFlow, exampleProgramFlow, 
+      -- * Convertion functions
+      generateJSONString, decodeJSONString, programFlowHash, openclKernelSource,
       -- * Utility functions
-      generateJSONString, decodeJSONString, programFlowHash, outputPoints, 
-      inputPoints, unasignedOutputPoints, unasignedInputPoints, 
-      openclKernelSource ) 
+      kernelInputPoints, kernelOutputPoints,
+      outputPoints, inputPoints, unasignedOutputPoints, unasignedInputPoints, 
+      arrowsFromNode, arrowsToNode, freeNodeOut, boundedNodeIn ) 
     where
 \end{code}
 
@@ -36,8 +38,8 @@ import Data.Maybe( mapMaybe )
 import Data.List( intercalate )
 import Data.ByteString.Lazy.Char8( ByteString, pack )
 import Data.Digest.Pure.SHA( sha256, bytestringDigest )
-import qualified Data.IntMap as MI( IntMap, empty, fromList, assocs )
-import qualified Data.Map as M( Map, empty, fromList, assocs, lookup )
+import qualified Data.IntMap as MI( IntMap, empty, fromList, assocs, (!) )
+import qualified Data.Map as M( Map, empty, fromList, assocs, lookup, (!) )
 import Text.JSON
     ( Result(..), JSON(..), JSValue(..), makeObj, encode, decode, fromJSObject )
 import Skema.Types( IOPointType(..), IOPointDataType(..) )
@@ -203,6 +205,16 @@ programFlowHash = bytestringDigest.sha256 . pack . generateJSONString
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+isOutPoint :: PFIOPoint -> Bool
+isOutPoint = (==OutputPoint) . pfIOPType
+\end{code}
+
+\begin{code}
+isInPoint :: PFIOPoint -> Bool
+isInPoint = (==InputPoint) . pfIOPType
+\end{code}
+
+\begin{code}
 data IOPoint = IOPoint
     { iopType :: !IOPointType
     , iopDataType :: !IOPointDataType
@@ -262,10 +274,51 @@ unasignedOutputPoints pf = filter (not.(`elem`arrows).extract) $ outputPoints pf
 
 \begin{code}
 unasignedInputPoints :: ProgramFlow -> [IOPoint]
-unasignedInputPoints pf = filter (not.(`elem`arrows).extract) $ inputPoints pf
+unasignedInputPoints pf = filter ((`notElem`arrows).extract) $ inputPoints pf
   where
     arrows = map pfaInput $ pfArrows pf
     extract p = (iopNode p, iopPoint p)
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+arrowsFromNode :: Int -> ProgramFlow -> [PFArrow]
+arrowsFromNode nid pf = arrows
+  where
+    arrows = filter outfrom $ pfArrows pf
+    outfrom arr = (fst $ pfaOuput arr) == nid
+\end{code}
+
+\begin{code}
+arrowsToNode :: Int -> ProgramFlow -> [PFArrow]
+arrowsToNode nid pf = arrows
+  where
+    arrows = filter into $ pfArrows pf
+    into arr = (fst $ pfaInput arr) == nid
+\end{code}
+
+\begin{code}
+freeNodeOut :: Int -> ProgramFlow -> [String]
+freeNodeOut nid pf = map fst outs
+  where
+    outs = filter check points
+    points = M.assocs $ pfkIOPoints kernel
+    kernel = (pfKernels pf) M.! (pfnIndex node)
+    node = (pfNodes pf) MI.! nid
+    arrows = map (snd.pfaOuput) $ arrowsFromNode nid pf
+    check p = ((`notElem`arrows).fst $ p)&&(isOutPoint.snd $ p)
+\end{code}
+
+\begin{code}
+boundedNodeIn :: Int -> ProgramFlow -> [String]
+boundedNodeIn nid pf = map fst ins
+  where
+    ins = filter check points
+    points = M.assocs $ pfkIOPoints kernel
+    kernel = (pfKernels pf) M.! (pfnIndex node)
+    node = (pfNodes pf) MI.! nid
+    arrows = map (snd.pfaInput) $ arrowsToNode nid pf
+    check p = ((`elem`arrows).fst $ p)&&(isInPoint.snd $ p)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
