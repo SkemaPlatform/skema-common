@@ -44,6 +44,7 @@ import Skema.ProgramFlow
     generateJSONString, exampleProgramFlow, unasignedOutputPoints, 
     unasignedInputPoints, decodeJSONString )
 import Skema.Network()
+import Skema.Concurrent()
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

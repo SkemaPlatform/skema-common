@@ -24,6 +24,7 @@ Library
     Skema.Types
     Skema.ProgramFlow
     Skema.Network
+    Skema.Concurrent
   Other-modules:
   if flag(testing)
     buildable: False
