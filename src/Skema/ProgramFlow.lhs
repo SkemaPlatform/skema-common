@@ -74,7 +74,7 @@ type PFArrowPoint = (Int,String)
 
 \begin{code}
 data PFArrow = PFArrow
-    { pfaOuput :: !PFArrowPoint 
+    { pfaOutput :: !PFArrowPoint 
     , pfaInput :: !PFArrowPoint }
                deriving( Show, Eq )
 \end{code}
@@ -161,7 +161,7 @@ instance JSON PFNode where
 \begin{code}
 instance JSON PFArrow where
     showJSON pfa = makeObj
-                   [ ("output", showJSON . pfaOuput $ pfa)
+                   [ ("output", showJSON . pfaOutput $ pfa)
                    , ("input", showJSON . pfaInput $ pfa)]
     readJSON (JSObject obj) = let
       jsonObjAssoc = fromJSObject obj
@@ -271,7 +271,7 @@ inputPoints pf = concatMap (\(i,xs) -> map (createIOPoint i) xs) . map (second k
 unasignedOutputPoints :: ProgramFlow -> [IOPoint]
 unasignedOutputPoints pf = filter (not.(`elem`arrows).extract) $ outputPoints pf
   where
-    arrows = map pfaOuput $ pfArrows pf
+    arrows = map pfaOutput $ pfArrows pf
     extract p = (iopNode p, iopPoint p)
 \end{code}
 
@@ -288,7 +288,7 @@ unasignedInputPoints pf = filter ((`notElem`arrows).extract) $ inputPoints pf
 arrowFrom :: PFArrowPoint -> ProgramFlow -> PFArrow
 arrowFrom output pf = head . filter outfrom $ pfArrows pf
   where
-    outfrom arr = (pfaOuput arr) == output
+    outfrom arr = (pfaOutput arr) == output
 \end{code}
 
 \begin{code}
@@ -296,7 +296,7 @@ arrowsFromNode :: Int -> ProgramFlow -> [PFArrow]
 arrowsFromNode nid pf = arrows
   where
     arrows = filter outfrom $ pfArrows pf
-    outfrom arr = (fst $ pfaOuput arr) == nid
+    outfrom arr = (fst $ pfaOutput arr) == nid
 \end{code}
 
 \begin{code}
@@ -315,7 +315,7 @@ freeNodeOut nid pf = map fst outs
     points = M.assocs $ pfkIOPoints kernel
     kernel = (pfKernels pf) M.! (pfnIndex node)
     node = (pfNodes pf) MI.! nid
-    arrows = map (snd.pfaOuput) $ arrowsFromNode nid pf
+    arrows = map (snd.pfaOutput) $ arrowsFromNode nid pf
     check p = ((`notElem`arrows).fst $ p)&&(isOutPoint.snd $ p)
 \end{code}
 
@@ -339,7 +339,7 @@ boundedNodeOut nid pf = map fst ins
     points = M.assocs $ pfkIOPoints kernel
     kernel = (pfKernels pf) M.! (pfnIndex node)
     node = (pfNodes pf) MI.! nid
-    arrows = map (snd.pfaOuput) $ arrowsFromNode nid pf
+    arrows = map (snd.pfaOutput) $ arrowsFromNode nid pf
     check p = ((`elem`arrows).fst $ p)&&(isOutPoint.snd $ p)
 \end{code}
 
