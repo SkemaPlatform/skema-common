@@ -28,15 +28,15 @@ module Skema.ProgramFlow
       kernelInputPoints, kernelOutputPoints,
       outputPoints, inputPoints, unasignedOutputPoints, unasignedInputPoints, 
       arrowFrom, arrowsFromNode, arrowsToNode, freeNodeOut, boundedNodeIn, 
-      boundedNodeOut ) 
+      boundedNodeOut, nodeIOpos ) 
     where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 import Control.Arrow( second )
-import Data.Maybe( mapMaybe )
-import Data.List( intercalate )
+import Data.Maybe( mapMaybe, fromJust )
+import Data.List( intercalate, elemIndex )
 import Data.ByteString.Lazy.Char8( ByteString, pack )
 import Data.Digest.Pure.SHA( sha256, bytestringDigest )
 import qualified Data.IntMap as MI( IntMap, empty, fromList, assocs, (!) )
@@ -339,6 +339,15 @@ boundedNodeOut nid pf = map fst ins
     node = (pfNodes pf) MI.! nid
     arrows = map (snd.pfaOuput) $ arrowsFromNode nid pf
     check p = ((`elem`arrows).fst $ p)&&(isOutPoint.snd $ p)
+\end{code}
+
+\begin{code}
+nodeIOpos :: Int -> String -> ProgramFlow -> Int
+nodeIOpos nid name pf = fromJust $ elemIndex name names
+  where
+    names = map fst . M.assocs $ pfkIOPoints kernel
+    kernel = (pfKernels pf) M.! (pfnIndex node)
+    node = (pfNodes pf) MI.! nid
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
