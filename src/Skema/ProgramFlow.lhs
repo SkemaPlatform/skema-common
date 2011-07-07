@@ -27,7 +27,8 @@ module Skema.ProgramFlow
       -- * Utility functions
       kernelInputPoints, kernelOutputPoints,
       outputPoints, inputPoints, unasignedOutputPoints, unasignedInputPoints, 
-      arrowsFromNode, arrowsToNode, freeNodeOut, boundedNodeIn ) 
+      arrowFrom, arrowsFromNode, arrowsToNode, freeNodeOut, boundedNodeIn, 
+      boundedNodeOut ) 
     where
 \end{code}
 
@@ -282,6 +283,13 @@ unasignedInputPoints pf = filter ((`notElem`arrows).extract) $ inputPoints pf
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+arrowFrom :: PFArrowPoint -> ProgramFlow -> PFArrow
+arrowFrom output pf = head . filter outfrom $ pfArrows pf
+  where
+    outfrom arr = (pfaOuput arr) == output
+\end{code}
+
+\begin{code}
 arrowsFromNode :: Int -> ProgramFlow -> [PFArrow]
 arrowsFromNode nid pf = arrows
   where
@@ -319,6 +327,18 @@ boundedNodeIn nid pf = map fst ins
     node = (pfNodes pf) MI.! nid
     arrows = map (snd.pfaInput) $ arrowsToNode nid pf
     check p = ((`elem`arrows).fst $ p)&&(isInPoint.snd $ p)
+\end{code}
+
+\begin{code}
+boundedNodeOut :: Int -> ProgramFlow -> [String]
+boundedNodeOut nid pf = map fst ins
+  where
+    ins = filter check points
+    points = M.assocs $ pfkIOPoints kernel
+    kernel = (pfKernels pf) M.! (pfnIndex node)
+    node = (pfNodes pf) MI.! nid
+    arrows = map (snd.pfaOuput) $ arrowsFromNode nid pf
+    check p = ((`elem`arrows).fst $ p)&&(isOutPoint.snd $ p)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
