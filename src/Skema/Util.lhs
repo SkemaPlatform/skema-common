@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 -- | General functions for Skema programs
-module Skema.Util( byteStringHex, hexByteString, __ ) where
+module Skema.Util( byteStringHex, hexByteString ) where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -24,8 +24,6 @@ module Skema.Util( byteStringHex, hexByteString, __ ) where
 import Data.ByteString.Lazy( ByteString, unpack, pack )
 import Data.Bits( (.&.), (.|.), shiftR, shiftL )
 import Data.Char( intToDigit, digitToInt )
-import Text.I18N.GetText( getText )
-import System.IO.Unsafe( unsafePerformIO )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -49,12 +47,6 @@ hexByteString = pack . map (fromInteger.toInteger).groupBinary . map digitToInt
     groupBinary (x:[]) = [x .&. 0xf]
     groupBinary (x:y:xs) = binaryAdd x y : groupBinary xs
     binaryAdd x y = ((x .&. 0xf) `shiftL` 4) .|. (y .&. 0xf)
-\end{code}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
-__ :: String -> String
-__ = unsafePerformIO . getText
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
