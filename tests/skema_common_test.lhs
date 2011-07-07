@@ -222,7 +222,7 @@ tests = [
   ("Skema.Types: json IOPointDataType", longCheck prop_json_IOPointDataType),
   ("Skema.Types: json IOPointType", longCheck prop_json_IOPointType),
   ("Skema.Util: hex -> ByteString", longCheck prop_hexByteString),
---  ("Skema.Util: hex <-> ByteString id",longCheck prop_hexByteString_ident),
+  ("Skema.Util: hex <-> ByteString id",longCheck prop_hexByteString_ident),
   ("Skema.JSON: prettyJSON length", fastCheck prop_prettyjson_length),
   ("Skema.ProgramFlow: encode Example", oneCheck prop_encodeExample),
   ("Skema.ProgramFlow: ProgramFlow -> JSON", fastCheck prop_jsonProgramFlow),
