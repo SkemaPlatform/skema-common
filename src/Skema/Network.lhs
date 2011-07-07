@@ -15,6 +15,7 @@
 % along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | Network Utilities for Skema programs
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Skema.Network( postMultipartData, postFormUrlEncoded ) where
 \end{code}
@@ -32,7 +33,10 @@ import System.Random( randomRIO )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-postMultipartData :: String -> String -> IO (Request String)
+-- | Create a HTTP Request with a multipart header and data in it
+postMultipartData :: String -- ^ URI to use in the Request
+                     -> String -- ^ Data buffer to send
+                     -> IO (Request String) -- ^ returned Request
 postMultipartData uri buf = do
   case parseURI uri of
     Nothing -> error "invalid uri"
@@ -72,7 +76,10 @@ encodeField bnd (key,val) = [ "--" ++ bnd
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-postFormUrlEncoded :: String -> [(String,String)] -> IO (Request String)
+-- | Create a HTTP Request with pairs of (name,value) as form data
+postFormUrlEncoded :: String -- ^ URI to use in the Request
+                      -> [(String,String)] -- ^ pairs of (name,value) data
+                      -> IO (Request String) -- ^ returned Request
 postFormUrlEncoded uri pairs = do
   let form = export . importList $ pairs
   case parseURI uri of
