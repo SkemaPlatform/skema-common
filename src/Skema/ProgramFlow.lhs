@@ -15,6 +15,7 @@
 % along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | Module with the function relative to Program Flows.
 module Skema.ProgramFlow
     ( 
       -- * Types
@@ -49,46 +50,54 @@ import Skema.JSON( smapToObj, objToSmap, jsonLookup )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | I/O point in a Program Flow.
 data PFIOPoint = PFIOPoint
-    { pfIOPDataType :: !IOPointDataType 
-    , pfIOPType :: !IOPointType }
-    deriving( Show, Eq )
+    { pfIOPDataType :: !IOPointDataType -- ^ data type of the point
+    , pfIOPType :: !IOPointType  -- ^ type of the point [Input|Output]
+    } deriving( Show, Eq )
 \end{code}
 
 \begin{code}
+-- | Program Flow Kernel.
 data PFKernel = PFKernel
-    { pfkBody :: !String
-    , pfkIOPoints :: M.Map String PFIOPoint }
-    deriving( Show, Eq )
+    { pfkBody :: !String -- ^ OpenCL body of the kernel.
+    , pfkIOPoints :: M.Map String PFIOPoint 
+      -- ^ list of names I/O points or parameters
+    } deriving( Show, Eq )
 \end{code}
 
 \begin{code}
+-- | Program Flow Node. A node is a instance of a Program Flow Kernel `PFKernel`.
 data PFNode = PFNode
-    { pfnIndex :: !String }
-    deriving( Show, Eq )
+    { pfnIndex :: !String -- ^ name of the kernel.
+    } deriving( Show, Eq )
 \end{code}
 
 \begin{code}
+-- | Define one of the two end points of a arrow in the Program Flow.
 type PFArrowPoint = (Int,String)
 \end{code}
 
 \begin{code}
+-- | Program Flow arrow between two nodes.
 data PFArrow = PFArrow
-    { pfaOutput :: !PFArrowPoint 
-    , pfaInput :: !PFArrowPoint }
-               deriving( Show, Eq )
+    { pfaOutput :: !PFArrowPoint -- ^ end of the arrow
+    , pfaInput :: !PFArrowPoint -- ^ begin of the arrow
+    } deriving( Show, Eq )
 \end{code}
 
 \begin{code}
+-- | Program Flow.
 data ProgramFlow = ProgramFlow
-    { pfKernels :: M.Map String PFKernel
-    , pfNodes :: MI.IntMap PFNode 
-    , pfArrows :: [PFArrow]}
-    deriving( Show, Eq )
+    { pfKernels :: M.Map String PFKernel -- ^ Kernels used in the Program Flow
+    , pfNodes :: MI.IntMap PFNode -- ^ Nodes of the Program Flow
+    , pfArrows :: [PFArrow] -- ^ arrows between nodes
+    } deriving( Show, Eq )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | empty Program Flow.
 emptyProgramFlow :: ProgramFlow
 emptyProgramFlow = ProgramFlow M.empty MI.empty []
 \end{code}
@@ -100,6 +109,7 @@ exampleKernel = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];"
                   ("i1",PFIOPoint IOfloat4 InputPoint),
                   ("o1",PFIOPoint IOfloat4 OutputPoint)])
 
+-- | simple example Program Flow.
 exampleProgramFlow :: ProgramFlow
 exampleProgramFlow = emptyProgramFlow {
   pfKernels= M.fromList [
@@ -189,11 +199,13 @@ instance JSON ProgramFlow where
 \end{code}
 
 \begin{code}
+-- | Generate a JSON string from a Program Flow.
 generateJSONString :: ProgramFlow -> String
 generateJSONString = encode . showJSON
 \end{code}
 
 \begin{code}
+-- | Decode a JSON string to obtain a Program Flow.
 decodeJSONString :: String -> Either String ProgramFlow
 decodeJSONString cad = case decode cad of
   Ok pf -> Right pf
@@ -202,6 +214,8 @@ decodeJSONString cad = case decode cad of
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | Obtain the SHA-256 value of a Program Flow. It use the JSON string of the
+-- Program Flow to calculate the hash.
 programFlowHash :: ProgramFlow -> ByteString    
 programFlowHash = bytestringDigest.sha256 . pack . generateJSONString
 \end{code}
@@ -350,6 +364,7 @@ nodeIOpos nid name pf = fromJust $ elemIndex name names
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | Obtain the OpenCL source code of a named Kernel.
 openclKernelSource :: String -> PFKernel -> String
 openclKernelSource name krn = concat ["__kernel void ", name, 
                                       "( ", parameters, " ){\n", 
