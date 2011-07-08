@@ -228,21 +228,17 @@ data IOPoint = IOPoint
 
 \begin{code}
 kernelOutputPoints :: PFKernel -> [(String,PFIOPoint)]
-kernelOutputPoints = filter isOutput . M.assocs . pfkIOPoints
-  where
-    isOutput = (==OutputPoint).pfIOPType.snd
+kernelOutputPoints = filter (isOutPoint.snd) . M.assocs . pfkIOPoints
 \end{code}
 
 \begin{code}
 kernelInputPoints :: PFKernel -> [(String,PFIOPoint)]
-kernelInputPoints = filter isInput . M.assocs . pfkIOPoints
-  where
-    isInput = (==InputPoint).pfIOPType.snd
+kernelInputPoints = filter (isInPoint.snd) . M.assocs . pfkIOPoints
 \end{code}
 
 \begin{code}
 createIOPoint :: Int -> (String, PFIOPoint) -> IOPoint
-createIOPoint idx (n, p) = IOPoint (pfIOPType p) (pfIOPDataType p) idx n
+createIOPoint idx (n,p) = IOPoint (pfIOPType p) (pfIOPDataType p) idx n
 \end{code}
 
 \begin{code}
