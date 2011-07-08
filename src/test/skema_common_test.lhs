@@ -163,6 +163,15 @@ prop_jsonProgramFlow pf = case decodeJSONString cad of
 \end{code}
 
 \begin{code}
+prop_jsonPrettyProgramFlow :: ProgramFlow -> Bool
+prop_jsonPrettyProgramFlow pf = case decodeJSONString cad of
+  Left _ -> False
+  Right newpf -> newpf == pf
+  where
+    cad = prettyJSON $ generateJSONString pf
+\end{code}
+
+\begin{code}
 prop_encodeExample :: Result
 prop_encodeExample = case gend of
   JSON.Ok _ -> succeeded
@@ -226,7 +235,8 @@ tests = [
   ("Skema.JSON: prettyJSON length", fastCheck prop_prettyjson_length),
   ("Skema.ProgramFlow: encode Example", oneCheck prop_encodeExample),
   ("Skema.ProgramFlow: ProgramFlow -> JSON", fastCheck prop_jsonProgramFlow),
-  ("Skema.ProgramFlow: unasigned points", fastCheck prop_unasignedpoints) 
+  ("Skema.ProgramFlow: unasigned points", fastCheck prop_unasignedpoints),
+  ("Skema.*: ProgramFlow -> PrettyJSON", fastCheck prop_jsonPrettyProgramFlow)
  ]
 \end{code}
 
