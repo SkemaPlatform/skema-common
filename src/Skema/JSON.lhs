@@ -73,7 +73,20 @@ prettyJSON' ('}':xs) lvl = '}' : prettyJSON' xs (lvl-1)
 prettyJSON' (',':xs) lvl = ",\n" ++ lvlTabs lvl ++ prettyJSON' xs lvl
 prettyJSON' ('[':xs) lvl = '[' : prettyJSON' xs (lvl+1)
 prettyJSON' (']':xs) lvl = ']' : prettyJSON' xs (lvl-1)
+prettyJSON' ('"':xs) lvl = ('"':ys) ++ prettyJSON' zs lvl
+  where
+    (ys,zs) = removeInnerString xs
 prettyJSON' (x:xs) lvl = x : prettyJSON' xs lvl
+
+removeInnerString :: String -> (String,String)
+removeInnerString [] = ([],[])
+removeInnerString ('\\':'"':xs) = ("\\\"" ++ ys,zs)
+  where
+    (ys,zs) = removeInnerString xs
+removeInnerString ('"':xs) = ("\"",xs)
+removeInnerString (x:xs) = (x:ys,zs)
+  where
+    (ys,zs) = removeInnerString xs
 
 lvlTabs :: Int -> String
 lvlTabs n = replicate (4*n) ' '
