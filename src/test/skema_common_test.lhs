@@ -239,6 +239,11 @@ fastCheck = quickCheckWith stdArgs { maxSuccess=500, maxSize=10 }
 \end{code}
 
 \begin{code}
+ultraCheck :: Testable prop => prop -> IO ()
+ultraCheck = quickCheckWith stdArgs { maxSuccess=500, maxSize=5 }
+\end{code}
+
+\begin{code}
 tests :: [(String, IO ())]
 tests = [
   ("Skema.Math: radians to degrees", longCheck prop_rad2deg),
@@ -247,11 +252,11 @@ tests = [
   ("Skema.Types: json IOPointType", longCheck prop_json_IOPointType),
   ("Skema.Util: hex -> ByteString", longCheck prop_hexByteString),
   ("Skema.Util: hex <-> ByteString id",longCheck prop_hexByteString_ident),
-  ("Skema.JSON: prettyJSON length", fastCheck prop_prettyjson_length),
+  ("Skema.JSON: prettyJSON length", ultraCheck prop_prettyjson_length),
   ("Skema.ProgramFlow: encode Example", oneCheck prop_encodeExample),
-  ("Skema.ProgramFlow: ProgramFlow -> JSON", fastCheck prop_jsonProgramFlow),
+  ("Skema.ProgramFlow: ProgramFlow -> JSON", ultraCheck prop_jsonProgramFlow),
   ("Skema.ProgramFlow: unasigned points", fastCheck prop_unasignedpoints),
-  ("Skema.*: ProgramFlow -> PrettyJSON", fastCheck prop_jsonPrettyProgramFlow)
+  ("Skema.*: ProgramFlow -> PrettyJSON", ultraCheck prop_jsonPrettyProgramFlow)
  ]
 \end{code}
 
