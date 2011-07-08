@@ -15,9 +15,12 @@
 % along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | Functions and types to help in the use of concurrent threads
 module Skema.Concurrent( 
-  ChildLock, ChildLocks, newChildLock, newChildLocks, endChildLock, 
-  waitForChildren ) 
+  -- * Types
+  ChildLock, ChildLocks, 
+  -- * Functions
+  newChildLock, newChildLocks, endChildLock, waitForChildren ) 
        where
 \end{code}
 
@@ -29,12 +32,16 @@ import Control.Concurrent.MVar
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | The ChildLock is a Synchronising variable to test a thread termination
 type ChildLock = MVar ()
+-- | The ChildLocks save all the children that we want to wait
 type ChildLocks = MVar [ChildLock]
 \end{code}
 
 \begin{code}
-newChildLock :: ChildLocks -> IO ChildLock
+-- | Create a new Child Lock to wait for later
+newChildLock :: ChildLocks -- ^ list of children locks we'll save the new one
+                -> IO ChildLock -- ^ return the new child lock
 newChildLock children = do
   lock <- newEmptyMVar
   childs <- takeMVar children
@@ -43,12 +50,15 @@ newChildLock children = do
 \end{code}
                                  
 \begin{code}
-endChildLock :: ChildLock -> IO ()
+-- | End a child lock. This should be called for the child thread when done
+endChildLock :: ChildLock -- ^ thread lock
+                -> IO ()
 endChildLock lock = putMVar lock ()
 \end{code}
                                  
 \begin{code}
-newChildLocks :: IO ChildLocks 
+-- | Create a new empty list of children to wait for
+newChildLocks :: IO ChildLocks -- ^ return the new list
 newChildLocks = newMVar []
 \end{code}
                                  
@@ -58,7 +68,10 @@ waitForChild = takeMVar
 \end{code}
                                  
 \begin{code}
-waitForChildren :: ChildLocks -> IO () -> IO ()
+-- | Wait until the children listed call `endChildLock` with its own lock
+waitForChildren :: ChildLocks -- ^ list of children locks to wait for
+                   -> IO () -- ^ function to call at the end
+                   -> IO ()
 waitForChildren children end = do
       cs <- takeMVar children
       case cs of
