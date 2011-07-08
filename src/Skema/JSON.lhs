@@ -80,6 +80,9 @@ prettyJSON' (x:xs) lvl = x : prettyJSON' xs lvl
 
 removeInnerString :: String -> (String,String)
 removeInnerString [] = ([],[])
+removeInnerString ('\\':'\\':xs) = ("\\\\"++ys,zs)
+  where
+    (ys,zs) = removeInnerString xs
 removeInnerString ('\\':'"':xs) = ("\\\"" ++ ys,zs)
   where
     (ys,zs) = removeInnerString xs
