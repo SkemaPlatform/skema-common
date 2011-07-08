@@ -15,32 +15,35 @@
 % along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | Useful types for Skema programs
 module Skema.Types( IOPointType(..), IOPointDataType(..) ) where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 import Text.JSON( JSON(..), JSValue(..), Result(..), fromJSString )
---import Data.Tuple( swap )
 import qualified Data.Map as M( Map, (!), fromList, lookup )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Swap is available in Base 4.3.1.* but not in 4.2.0.*
 \begin{code}
+-- | interchange the values of a tuple
 swap :: (a,b) -> (b,a)
 swap (a,b) = (b,a)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-data IOPointType = InputPoint
-                 | OutputPoint
+-- | Type of a comunication point of a node
+data IOPointType = InputPoint -- ^ Input
+                 | OutputPoint -- ^ Output
                    deriving( Show, Read, Eq, Enum, Bounded )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | Built-in data types of OpenCL programs
 data IOPointDataType = IOchar | IOuchar | IOshort | IOushort
                      | IOint | IOuint | IOlong | IOulong
                      | IOfloat
@@ -85,6 +88,7 @@ dataTypeReadTable :: M.Map String IOPointDataType
 dataTypeReadTable = M.fromList . map swap $ dataTypeNames
 \end{code}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 instance Show IOPointDataType where
   show v = dataTypeShowTable M.! v
@@ -99,6 +103,7 @@ instance Read IOPointDataType where
       Just v -> [(v,t)]
 \end{code}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 instance JSON IOPointType where
     showJSON = showJSON . show
