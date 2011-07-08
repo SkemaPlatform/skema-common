@@ -22,13 +22,13 @@ module Main( main ) where
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 import Test.QuickCheck
-  ( Testable, Arbitrary(..), Args(..), stdArgs, quickCheckWith, elements, 
-    suchThat )
+  ( Gen, Testable, Arbitrary(..), Args(..), stdArgs, quickCheckWith, elements, 
+    suchThat, listOf )
 import Test.QuickCheck.Property( Result, succeeded, failed )
 import Text.Printf( printf )
 import qualified Text.JSON as JSON( encode, decode, Result(..) )
-import Control.Monad( replicateM )
-import Data.Char( isHexDigit )
+import Control.Monad( replicateM, liftM )
+import Data.Char( isHexDigit, isPrint )
 import Data.List( intersect )
 import qualified Data.ByteString.Lazy.Char8 as LC
   ( ByteString, fromChunks, length )
@@ -54,6 +54,11 @@ main = mapM_ (\(s,a) -> printf "%-25s: " s >> a) tests
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+printableString :: Gen String
+printableString = listOf (suchThat arbitrary isPrint)
+\end{code}
+
 \begin{code}
 instance Arbitrary BC.ByteString where
   arbitrary = BC.pack `fmap` arbitrary
@@ -81,25 +86,29 @@ instance Arbitrary PFIOPoint where
   
 instance Arbitrary PFKernel where
   arbitrary = do
-    name <- arbitrary
+    body <- printableString
     nins <- suchThat arbitrary (>0)
     nouts <- suchThat arbitrary (>0)
     ips <- replicateM nins $ do
-      pname <- arbitrary
+      pname <- printableString
       d <- arbitrary
       return $ (pname,PFIOPoint d InputPoint)
     ops <- replicateM nouts $ do
-      pname <- arbitrary
+      pname <- printableString
       d <- arbitrary
       return $ (pname,PFIOPoint d OutputPoint)
-    return $ PFKernel name (M.fromList (ips ++ ops))
+    return $ PFKernel body (M.fromList (ips ++ ops))
   
 instance Arbitrary PFNode where
-  arbitrary = arbitrary >>= return . PFNode
+  arbitrary = printableString >>= return . PFNode
     
 instance Arbitrary ProgramFlow where
   arbitrary = do
-    kernels <- arbitrary
+    nkernels <- suchThat arbitrary (>=0)
+    kernels <- liftM M.fromList $ replicateM nkernels $ do
+      kname <- printableString
+      kernel <- arbitrary
+      return (kname,kernel)
     nodes <- if (M.size kernels == 0) 
       then return []
       else do
@@ -111,8 +120,14 @@ instance Arbitrary ProgramFlow where
       else do
         narrows <- arbitrary
         replicateM narrows $ do
-          aoutput <- arbitrary
-          ainput <- arbitrary
+          aoutput <- do
+            d <- suchThat arbitrary (>=0)
+            n <- printableString
+            return (d,n)
+          ainput <- do
+            d <- suchThat arbitrary (>=0)
+            n <- printableString
+            return (d,n)
           return $ PFArrow aoutput ainput
     return $ ProgramFlow kernels (IM.fromList (zip [1..] nodes)) arrows
 \end{code}
