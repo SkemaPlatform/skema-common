@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 -- | General functions for Skema programs
-module Skema.Util( byteStringHex, hexByteString ) where
+module Skema.Util( byteStringHex, hexByteString, prettyBytes ) where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -47,6 +47,22 @@ hexByteString = pack . map (fromInteger.toInteger).groupBinary . map digitToInt
     groupBinary (x:[]) = [x .&. 0xf]
     groupBinary (x:y:xs) = binaryAdd x y : groupBinary xs
     binaryAdd x y = ((x .&. 0xf) `shiftL` 4) .|. (y .&. 0xf)
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+prettySymbols :: [String]
+prettySymbols = ["B", "KiB","MiB","GiB","TiB","PiB","EiB"]
+
+prettyBytes :: Integral a => a -> String
+prettyBytes = prettyBytes' prettySymbols . fromIntegral
+
+prettyBytes' :: [String] -> Float -> String
+prettyBytes' [] _ = error "no unit symbol"
+prettyBytes' (s:[]) n = concat [show n, " ", s]
+prettyBytes' (s:ss) n
+  | n < 1024 = concat [show n, " ", s]
+  | otherwise = prettyBytes' ss (n / 1024.0)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
