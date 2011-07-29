@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 -- | Useful types for Skema programs
-module Skema.Types( IOPointType(..), IOPointDataType(..) ) where
+module Skema.Types( IOPointType(..), IOPointDataType(..), openclTypeNames ) where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -86,6 +86,11 @@ dataTypeShowTable = M.fromList $ dataTypeNames
 
 dataTypeReadTable :: M.Map String IOPointDataType
 dataTypeReadTable = M.fromList . map swap $ dataTypeNames
+\end{code}
+
+\begin{code}
+openclTypeNames :: [String]
+openclTypeNames = map snd dataTypeNames
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
