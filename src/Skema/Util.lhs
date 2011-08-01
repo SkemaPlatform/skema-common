@@ -16,7 +16,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 -- | General functions for Skema programs
-module Skema.Util( byteStringHex, hexByteString, prettyBytes, duplicates ) where
+module Skema.Util( 
+  byteStringHex, hexByteString, prettyBytes, duplicates, checkGraphCycles, 
+  topologicalSorting ) 
+       where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -24,7 +27,7 @@ module Skema.Util( byteStringHex, hexByteString, prettyBytes, duplicates ) where
 import Data.ByteString.Lazy( ByteString, unpack, pack )
 import Data.Bits( (.&.), (.|.), shiftR, shiftL )
 import Data.Char( intToDigit, digitToInt )
-import Data.List( group, sort )
+import Data.List( group, sort, nub )
 import Control.Arrow( (&&&) )
 \end{code}
 
@@ -70,6 +73,44 @@ prettyBytes' (s:ss) n
 \begin{code}
 duplicates :: Ord a => [a] -> [a]
 duplicates = map fst . filter ((>1) . snd) . map (head&&&length) . group . sort
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+http://stackoverflow.com/questions/4168/graph-serialization/4577#4577
+http://en.wikipedia.org/wiki/Topological_sorting
+
+\begin{code}
+checkGraphCycles :: Eq a => [(a,a)] -> Bool
+checkGraphCycles edges = null graph
+  where
+    (graph,_) = topologicalSorting' (nodesWithoutIncoming edges) edges []
+\end{code}
+
+\begin{code}
+topologicalSorting :: Eq a => [(a,a)] -> [a]
+topologicalSorting edges = reverse order
+  where
+    (_,order) = topologicalSorting' (nodesWithoutIncoming edges) edges []    
+topologicalSorting' :: Eq a => [a] -> [(a,a)] -> [a] -> ([(a,a)], [a])
+topologicalSorting' [] gs ls = (gs,ls)
+topologicalSorting' (n:xs) gs ls = topologicalSorting' (xs++newxs) newgs (n:ls)
+  where
+    edges = filter ((==n).fst) gs
+    newgs = filter (`notElem` edges) gs
+    ms = map snd edges
+    newxs = filter (`notElem` (map snd newgs)) ms
+\end{code}
+
+\begin{code}
+graphNodes :: Eq a => [(a,a)] -> [a]
+graphNodes = nub . uncurry (++) . unzip
+\end{code}
+
+\begin{code}
+nodesWithoutIncoming :: Eq a => [(a,a)] -> [a]
+nodesWithoutIncoming edges = filter notInput $ graphNodes edges
+  where
+    notInput x = x `notElem` (map snd edges)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
