@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 -- | General functions for Skema programs
-module Skema.Util( byteStringHex, hexByteString, prettyBytes ) where
+module Skema.Util( byteStringHex, hexByteString, prettyBytes, duplicates ) where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -24,6 +24,8 @@ module Skema.Util( byteStringHex, hexByteString, prettyBytes ) where
 import Data.ByteString.Lazy( ByteString, unpack, pack )
 import Data.Bits( (.&.), (.|.), shiftR, shiftL )
 import Data.Char( intToDigit, digitToInt )
+import Data.List( group, sort )
+import Control.Arrow( (&&&) )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -63,6 +65,11 @@ prettyBytes' (s:[]) n = concat [show n, " ", s]
 prettyBytes' (s:ss) n
   | n < 1024 = concat [show n, " ", s]
   | otherwise = prettyBytes' ss (n / 1024.0)
+\end{code}
+
+\begin{code}
+duplicates :: Ord a => [a] -> [a]
+duplicates = map fst . filter ((>1) . snd) . map (head&&&length) . group . sort
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
