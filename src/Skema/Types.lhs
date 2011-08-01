@@ -16,7 +16,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 -- | Useful types for Skema programs
-module Skema.Types( IOPointType(..), IOPointDataType(..), openclTypeNames ) where
+module Skema.Types( 
+  IOPointType(..), IOPointDataType(..), openclTypeNames, isSameBaseType ) 
+       where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -60,6 +62,36 @@ data IOPointDataType = IOchar | IOuchar | IOshort | IOushort
                      | IOint16 | IOuint16 | IOlong16 | IOulong16
                      | IOfloat16
                      deriving( Eq, Enum, Ord, Bounded )
+\end{code}
+
+\begin{code}
+dataTypeBases :: [(IOPointDataType,IOPointDataType)]
+dataTypeBases = [
+  (IOchar,IOuchar), (IOuchar,IOuchar), (IOshort,IOushort), (IOushort,IOushort), 
+  (IOint,IOuint), (IOuint,IOuint), (IOlong,IOulong), (IOulong,IOulong), 
+  (IOfloat,IOfloat), (IOchar2,IOuchar), (IOuchar2,IOuchar), (IOshort2,IOushort), 
+  (IOushort2,IOushort), (IOint2,IOuint), (IOuint2,IOuint), (IOlong2,IOulong), 
+  (IOulong2,IOulong), (IOfloat2,IOfloat), (IOchar4,IOuchar), (IOuchar4,IOuchar), 
+  (IOshort4,IOushort), (IOushort4,IOushort), (IOint4,IOuint), (IOuint4,IOuint), 
+  (IOlong4,IOulong), (IOulong4,IOulong), (IOfloat4,IOfloat), (IOchar8,IOuchar),
+  (IOuchar8,IOuchar), (IOshort8,IOushort), (IOushort8,IOushort), 
+  (IOint8,IOuint), (IOuint8,IOuint), (IOlong8,IOulong), (IOulong8,IOulong), 
+  (IOfloat8,IOfloat), (IOchar16,IOuchar), (IOuchar16,IOuchar), 
+  (IOshort16,IOushort), (IOushort16,IOushort), (IOint16,IOuint), 
+  (IOuint16,IOuint), (IOlong16,IOulong), (IOulong16,IOulong), 
+  (IOfloat16,IOfloat)]
+\end{code}
+
+\begin{code}
+dataTypeBase :: IOPointDataType -> IOPointDataType
+dataTypeBase a = case lookup a dataTypeBases of
+  Nothing -> error "no data type base"
+  Just b -> b
+\end{code}
+
+\begin{code}
+isSameBaseType :: IOPointDataType -> IOPointDataType -> Bool
+isSameBaseType a b = a == b || (dataTypeBase a) == (dataTypeBase b)
 \end{code}
 
 \begin{code}
