@@ -17,7 +17,7 @@
 \begin{code}
 -- | General functions for Skema programs
 module Skema.Util( 
-  byteStringHex, hexByteString, prettyBytes, duplicates, checkGraphCycles, 
+  byteStringHex, hexByteString, prettyBytes, duplicates, isAcyclicGraph, 
   topologicalSorting ) 
        where
 \end{code}
@@ -80,17 +80,19 @@ http://stackoverflow.com/questions/4168/graph-serialization/4577#4577
 http://en.wikipedia.org/wiki/Topological_sorting
 
 \begin{code}
-checkGraphCycles :: Eq a => [(a,a)] -> Bool
-checkGraphCycles edges = null graph
+isAcyclicGraph :: Eq a => [(a,a)] -> Bool
+isAcyclicGraph edges = null graph
   where
-    (graph,_) = topologicalSorting' (nodesWithoutIncoming edges) edges []
+    es = nub edges
+    (graph,_) = topologicalSorting' (nodesWithoutIncoming es) es []
 \end{code}
 
 \begin{code}
 topologicalSorting :: Eq a => [(a,a)] -> [a]
 topologicalSorting edges = reverse order
   where
-    (_,order) = topologicalSorting' (nodesWithoutIncoming edges) edges []    
+    es = nub edges
+    (_,order) = topologicalSorting' (nodesWithoutIncoming es) es []
 topologicalSorting' :: Eq a => [a] -> [(a,a)] -> [a] -> ([(a,a)], [a])
 topologicalSorting' [] gs ls = (gs,ls)
 topologicalSorting' (n:xs) gs ls = topologicalSorting' (xs++newxs) newgs (n:ls)
