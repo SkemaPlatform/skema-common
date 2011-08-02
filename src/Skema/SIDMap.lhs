@@ -20,14 +20,14 @@ module Skema.SIDMap(
   -- Types
   SID(..), SIDMap,
   -- Functions 
-  sidMapAssocs ) 
+  sidMapAssocs, sidMapFromList, sidMapLookup ) 
        where
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 import Control.Arrow( first )
-import qualified Data.IntMap as MI( IntMap, assocs )
+import qualified Data.IntMap as MI( IntMap, assocs, fromList, lookup )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -48,6 +48,16 @@ type SIDMap a = MI.IntMap a
 \begin{code}
 sidMapAssocs :: SID k => SIDMap a -> [(k,a)]
 sidMapAssocs = map (first fromInt) . MI.assocs
+\end{code}
+
+\begin{code}
+sidMapFromList :: SID k => [(k,a)] -> SIDMap a
+sidMapFromList = MI.fromList . map (first toInt)
+\end{code}
+
+\begin{code}
+sidMapLookup ::SID k => k -> SIDMap a -> Maybe a
+sidMapLookup k = MI.lookup (toInt k)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
