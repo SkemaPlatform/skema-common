@@ -35,20 +35,28 @@ module Skema.ProgramFlow
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-import Control.Arrow( second )
+import Control.Arrow( second, first )
 import Data.Maybe( mapMaybe, fromJust )
 import Data.List( intercalate, elemIndex )
 import Data.ByteString.Lazy.Char8( ByteString, pack )
 import Data.Digest.Pure.SHA( sha256, bytestringDigest )
-import qualified Data.IntMap as MI( IntMap, empty, fromList, assocs, (!) )
+import qualified Data.IntMap as MI( empty, fromList, (!) )
 import qualified Data.Map as M( Map, empty, fromList, assocs, lookup, (!) )
 import Text.JSON
     ( Result(..), JSON(..), JSValue(..), makeObj, encode, decode, fromJSObject )
 import Skema.Types( IOPointType(..), IOPointDataType(..) )
 import Skema.JSON( smapToObj, objToSmap, jsonLookup )
+import Skema.SIDMap( SID(..), SIDMap, sidMapAssocs )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+newtype PFNodeID = PFNodeID Int deriving( Show, Eq )
+instance SID PFNodeID where
+  toInt (PFNodeID a) = a
+  fromInt = PFNodeID  
+\end{code}
+
 \begin{code}
 -- | I/O point in a Program Flow.
 data PFIOPoint = PFIOPoint
@@ -75,7 +83,7 @@ data PFNode = PFNode
 
 \begin{code}
 -- | Define one of the two end points of a arrow in the Program Flow.
-type PFArrowPoint = (Int,String)
+type PFArrowPoint = (PFNodeID,String)
 \end{code}
 
 \begin{code}
@@ -90,7 +98,7 @@ data PFArrow = PFArrow
 -- | Program Flow.
 data ProgramFlow = ProgramFlow
     { pfKernels :: M.Map String PFKernel -- ^ Kernels used in the Program Flow
-    , pfNodes :: MI.IntMap PFNode -- ^ Nodes of the Program Flow
+    , pfNodes :: SIDMap PFNode -- ^ Nodes of the Program Flow
     , pfArrows :: [PFArrow] -- ^ arrows between nodes
     } deriving( Show, Eq )
 \end{code}
@@ -123,7 +131,8 @@ exampleProgramFlow = emptyProgramFlow {
   pfNodes= MI.fromList [(0, PFNode "kuno"),
                         (1, PFNode "kuno"),
                         (2, PFNode "kdos")],
-  pfArrows= [PFArrow (0,"o1") (1,"i1"), PFArrow (1,"o1") (2,"i1")]
+  pfArrows= [PFArrow (fromInt 0,"o1") (fromInt 1,"i1"), 
+             PFArrow (fromInt 1,"o1") (fromInt 2,"i1")]
   }
 \end{code}
 
@@ -171,13 +180,13 @@ instance JSON PFNode where
 \begin{code}
 instance JSON PFArrow where
     showJSON pfa = makeObj
-                   [ ("output", showJSON . pfaOutput $ pfa)
-                   , ("input", showJSON . pfaInput $ pfa)]
+                   [ ("output", showJSON . first toInt . pfaOutput $ pfa)
+                   , ("input", showJSON . first toInt . pfaInput $ pfa)]
     readJSON (JSObject obj) = let
       jsonObjAssoc = fromJSObject obj
       in do
-        os <- jsonLookup "output" jsonObjAssoc >>= readJSON
-        is <- jsonLookup "input" jsonObjAssoc >>= readJSON
+        os <- jsonLookup "output" jsonObjAssoc >>= fmap (first fromInt) . readJSON
+        is <- jsonLookup "input" jsonObjAssoc >>= fmap (first fromInt) . readJSON
         return $ PFArrow os is
     readJSON _ = fail "invalid PFArrow"
 \end{code}
@@ -235,7 +244,7 @@ isInPoint = (==InputPoint) . pfIOPType
 data IOPoint = IOPoint
     { iopType :: !IOPointType
     , iopDataType :: !IOPointDataType
-    , iopNode :: !Int
+    , iopNode :: ! PFNodeID
     , iopPoint :: !String}
                deriving( Show, Eq )
 \end{code}
@@ -251,7 +260,7 @@ kernelInputPoints = filter (isInPoint.snd) . M.assocs . pfkIOPoints
 \end{code}
 
 \begin{code}
-createIOPoint :: Int -> (String, PFIOPoint) -> IOPoint
+createIOPoint :: PFNodeID -> (String, PFIOPoint) -> IOPoint
 createIOPoint idx (n,p) = IOPoint (pfIOPType p) (pfIOPDataType p) idx n
 \end{code}
 
@@ -267,14 +276,14 @@ kernelLookup pf (k,n) = maybe Nothing (Just.((,) k)) (M.lookup key kernels)
 outputPoints :: ProgramFlow -> [IOPoint]
 outputPoints pf = concatMap (\(i,xs) -> map (createIOPoint i) xs) . map (second kernelOutputPoints) . mapMaybe (kernelLookup pf)$ nodes
   where
-    nodes = MI.assocs $ pfNodes pf
+    nodes = sidMapAssocs $ pfNodes pf
 \end{code}
 
 \begin{code}
 inputPoints :: ProgramFlow -> [IOPoint]
 inputPoints pf = concatMap (\(i,xs) -> map (createIOPoint i) xs) . map (second kernelInputPoints) . mapMaybe (kernelLookup pf)$ nodes
   where
-    nodes = MI.assocs $ pfNodes pf
+    nodes = sidMapAssocs $ pfNodes pf
 \end{code}
 
 \begin{code}
@@ -302,7 +311,7 @@ arrowFrom output pf = head . filter outfrom $ pfArrows pf
 \end{code}
 
 \begin{code}
-arrowsFromNode :: Int -> ProgramFlow -> [PFArrow]
+arrowsFromNode :: PFNodeID -> ProgramFlow -> [PFArrow]
 arrowsFromNode nid pf = arrows
   where
     arrows = filter outfrom $ pfArrows pf
@@ -310,7 +319,7 @@ arrowsFromNode nid pf = arrows
 \end{code}
 
 \begin{code}
-arrowsToNode :: Int -> ProgramFlow -> [PFArrow]
+arrowsToNode :: PFNodeID -> ProgramFlow -> [PFArrow]
 arrowsToNode nid pf = arrows
   where
     arrows = filter into $ pfArrows pf
@@ -318,37 +327,37 @@ arrowsToNode nid pf = arrows
 \end{code}
 
 \begin{code}
-freeNodeOut :: Int -> ProgramFlow -> [String]
+freeNodeOut :: PFNodeID -> ProgramFlow -> [String]
 freeNodeOut nid pf = map fst outs
   where
     outs = filter check points
     points = M.assocs $ pfkIOPoints kernel
     kernel = (pfKernels pf) M.! (pfnIndex node)
-    node = (pfNodes pf) MI.! nid
+    node = (pfNodes pf) MI.! (toInt nid)
     arrows = map (snd.pfaOutput) $ arrowsFromNode nid pf
     check p = ((`notElem`arrows).fst $ p)&&(isOutPoint.snd $ p)
 \end{code}
 
 \begin{code}
-boundedNodeIn :: Int -> ProgramFlow -> [String]
+boundedNodeIn :: PFNodeID -> ProgramFlow -> [String]
 boundedNodeIn nid pf = map fst ins
   where
     ins = filter check points
     points = M.assocs $ pfkIOPoints kernel
     kernel = (pfKernels pf) M.! (pfnIndex node)
-    node = (pfNodes pf) MI.! nid
+    node = (pfNodes pf) MI.! (toInt nid)
     arrows = map (snd.pfaInput) $ arrowsToNode nid pf
     check p = ((`elem`arrows).fst $ p)&&(isInPoint.snd $ p)
 \end{code}
 
 \begin{code}
-boundedNodeOut :: Int -> ProgramFlow -> [String]
+boundedNodeOut :: PFNodeID -> ProgramFlow -> [String]
 boundedNodeOut nid pf = map fst ins
   where
     ins = filter check points
     points = M.assocs $ pfkIOPoints kernel
     kernel = (pfKernels pf) M.! (pfnIndex node)
-    node = (pfNodes pf) MI.! nid
+    node = (pfNodes pf) MI.! (toInt nid)
     arrows = map (snd.pfaOutput) $ arrowsFromNode nid pf
     check p = ((`elem`arrows).fst $ p)&&(isOutPoint.snd $ p)
 \end{code}
