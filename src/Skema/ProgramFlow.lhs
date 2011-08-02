@@ -26,7 +26,7 @@ module Skema.ProgramFlow
       -- * Convertion functions
       generateJSONString, decodeJSONString, programFlowHash, openclKernelSource,
       -- * Utility functions
-      kernelInputPoints, kernelOutputPoints,
+      kernelInputPoints, kernelOutputPoints, programFlowGetNode,
       outputPoints, inputPoints, unasignedOutputPoints, unasignedInputPoints, 
       arrowFrom, arrowsFromNode, arrowsToNode, freeNodeOut, boundedNodeIn, 
       boundedNodeOut, nodeIOpos ) 
@@ -101,6 +101,12 @@ data ProgramFlow = ProgramFlow
     , pfNodes :: SIDMap PFNode -- ^ Nodes of the Program Flow
     , pfArrows :: [PFArrow] -- ^ arrows between nodes
     } deriving( Show, Eq )
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{code}
+programFlowGetNode :: ProgramFlow -> PFNodeID -> PFNode
+programFlowGetNode pf nidx = (pfNodes pf) MI.! (toInt nidx)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -363,12 +369,12 @@ boundedNodeOut nid pf = map fst ins
 \end{code}
 
 \begin{code}
-nodeIOpos :: Int -> String -> ProgramFlow -> Int
+nodeIOpos :: PFNodeID -> String -> ProgramFlow -> Int
 nodeIOpos nid name pf = fromJust $ elemIndex name names
   where
     names = map fst . M.assocs $ pfkIOPoints kernel
     kernel = (pfKernels pf) M.! (pfnIndex node)
-    node = (pfNodes pf) MI.! nid
+    node = (pfNodes pf) MI.! (toInt nid)
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
