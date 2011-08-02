@@ -37,6 +37,10 @@ class SID a where
   fromInt :: Int -> a
   fromSID :: SID b => b -> a
   fromSID = fromInt . toInt
+  
+instance SID Int where
+  toInt = id
+  fromInt = id
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
