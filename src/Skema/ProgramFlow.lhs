@@ -19,8 +19,8 @@
 module Skema.ProgramFlow
     ( 
       -- * Types
-      PFArrowPoint, PFIOPoint(..), PFKernel(..), ProgramFlow(..), PFNode(..), 
-      PFArrow(..), IOPoint(..), 
+      PFNodeID, PFArrowPoint, PFIOPoint(..), PFKernel(..), ProgramFlow(..), 
+      PFNode(..), PFArrow(..), IOPoint(..), 
       -- * Basic values
       emptyProgramFlow, exampleProgramFlow, 
       -- * Convertion functions
@@ -51,7 +51,7 @@ import Skema.SIDMap( SID(..), SIDMap, sidMapAssocs )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-newtype PFNodeID = PFNodeID Int deriving( Show, Eq )
+newtype PFNodeID = PFNodeID Int deriving( Show, Eq, Ord )
 instance SID PFNodeID where
   toInt (PFNodeID a) = a
   fromInt = PFNodeID  

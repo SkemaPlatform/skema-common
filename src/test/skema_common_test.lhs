@@ -40,11 +40,12 @@ import Skema.Types( IOPointType(..), IOPointDataType(..) )
 import Skema.Util( hexByteString, byteStringHex )
 import Skema.JSON( prettyJSON )
 import Skema.ProgramFlow
-  ( PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), ProgramFlow(..), 
-    generateJSONString, exampleProgramFlow, unasignedOutputPoints, 
-    unasignedInputPoints, decodeJSONString )
+  ( PFNodeID, PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), 
+    ProgramFlow(..), generateJSONString, exampleProgramFlow, 
+    unasignedOutputPoints, unasignedInputPoints, decodeJSONString )
 import Skema.Network()
 import Skema.Concurrent()
+import Skema.SIDMap( SID(..) )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -60,6 +61,9 @@ printableString = listOf (suchThat arbitrary isPrint)
 \end{code}
 
 \begin{code}
+instance Arbitrary PFNodeID where
+  arbitrary = fromInt `fmap` arbitrary
+
 instance Arbitrary BC.ByteString where
   arbitrary = BC.pack `fmap` arbitrary
 
@@ -121,11 +125,11 @@ instance Arbitrary ProgramFlow where
         narrows <- arbitrary
         replicateM narrows $ do
           aoutput <- do
-            d <- suchThat arbitrary (>=0)
+            d <- suchThat arbitrary (>=(fromInt 0))
             n <- printableString
             return (d,n)
           ainput <- do
-            d <- suchThat arbitrary (>=0)
+            d <- suchThat arbitrary (>=(fromInt 0))
             n <- printableString
             return (d,n)
           return $ PFArrow aoutput ainput
