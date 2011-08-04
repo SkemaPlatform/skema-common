@@ -84,6 +84,8 @@ dataTypeBases = [
 \end{code}
 
 \begin{code}
+-- | get the equivalent scalar Data Type of a OpenCL Data Type. With integral
+-- types always return the unsigned one. Example: int16 base type is uint.
 dataTypeBase :: IOPointDataType -> IOPointDataType
 dataTypeBase = maybe (error "no datatype base") id . flip lookup dataTypeBases
 \end{code}
@@ -120,6 +122,7 @@ dataTypeReadTable = M.fromList . map swap $ dataTypeNames
 \end{code}
 
 \begin{code}
+-- | names of the OpenCL Scalar and Vector Data Types.
 openclTypeNames :: [String]
 openclTypeNames = map snd dataTypeNames
 \end{code}
@@ -139,6 +142,7 @@ dataTypeSizes = [
 \end{code}
 
 \begin{code}
+-- | get the size in bytes of a OpenCL Data Type.
 dataTypeSize :: IOPointDataType -> Int
 dataTypeSize = maybe (error "no datatype size") id . flip lookup dataTypeSizes
 \end{code}
@@ -153,9 +157,7 @@ instance Show IOPointDataType where
 instance Read IOPointDataType where
   readsPrec _ r = do
     (k,t) <- lex r
-    case M.lookup k dataTypeReadTable of
-      Nothing -> []
-      Just v -> [(v,t)]
+    maybe [] (\v -> [(v,t)]) $ M.lookup k dataTypeReadTable
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
