@@ -17,7 +17,8 @@
 \begin{code}
 -- | Useful types for Skema programs
 module Skema.Types( 
-  IOPointType(..), IOPointDataType(..), openclTypeNames, isSameBaseType ) 
+  IOPointType(..), IOPointDataType(..), openclTypeNames, isSameBaseType,
+  dataTypeSize ) 
        where
 \end{code}
 
@@ -84,9 +85,7 @@ dataTypeBases = [
 
 \begin{code}
 dataTypeBase :: IOPointDataType -> IOPointDataType
-dataTypeBase a = case lookup a dataTypeBases of
-  Nothing -> error "no data type base"
-  Just b -> b
+dataTypeBase = maybe (error "no datatype base") id . flip lookup dataTypeBases
 \end{code}
 
 \begin{code}
@@ -123,6 +122,25 @@ dataTypeReadTable = M.fromList . map swap $ dataTypeNames
 \begin{code}
 openclTypeNames :: [String]
 openclTypeNames = map snd dataTypeNames
+\end{code}
+
+\begin{code}
+dataTypeSizes :: [(IOPointDataType,Int)]
+dataTypeSizes = [
+  (IOchar,1), (IOuchar,1), (IOshort,2), (IOushort,2), (IOint,4), (IOuint,4), 
+  (IOlong,8), (IOulong,8), (IOfloat,4), (IOchar2,2), (IOuchar2,2), (IOshort2,4),
+  (IOushort2,4), (IOint2,8), (IOuint2,8), (IOlong2,16), (IOulong2,16), 
+  (IOfloat2,8), (IOchar4,4), (IOuchar4,4), (IOshort4,8), (IOushort4,8), 
+  (IOint4,16), (IOuint4,16), (IOlong4,32), (IOulong4,32), (IOfloat4,16), 
+  (IOchar8,8), (IOuchar8,8), (IOshort8,16), (IOushort8,16), (IOint8,32), 
+  (IOuint8,32), (IOlong8,64), (IOulong8,64), (IOfloat8,32), (IOchar16,16), 
+  (IOuchar16,16), (IOshort16,32), (IOushort16,32), (IOint16,64), (IOuint16,64), 
+  (IOlong16,128), (IOulong16,128), (IOfloat16,64)]
+\end{code}
+
+\begin{code}
+dataTypeSize :: IOPointDataType -> Int
+dataTypeSize = maybe (error "no datatype size") id . flip lookup dataTypeSizes
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
