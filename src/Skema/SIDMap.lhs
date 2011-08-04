@@ -27,15 +27,20 @@ module Skema.SIDMap(
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 import Control.Arrow( first )
-import qualified Data.IntMap as MI( 
-  IntMap, assocs, fromList, lookup, keys )
+import qualified Data.IntMap as MI( IntMap, assocs, fromList, lookup, keys )
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | Simple Identifier or Skema Identifier, values equivalents to an Int used as
+-- a 'SIDMap' key
 class SID a where
+  -- | Conversion to an 'Int' value.
   toInt :: a -> Int
+  -- | Conversion from an 'Int' value.
   fromInt :: Int -> a
+  -- | Conversion from a 'SID' instance to a different 'SID'. Default
+  -- implementation uses 'fromInt' and 'toInt'
   fromSID :: SID b => b -> a
   fromSID = fromInt . toInt
   
@@ -46,26 +51,31 @@ instance SID Int where
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | IntMap with 'SID' as key.
 type SIDMap a = MI.IntMap a
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
+-- | Return all key/value pairs in the map in ascending key order.
 sidMapAssocs :: SID k => SIDMap a -> [(k,a)]
 sidMapAssocs = map (first fromInt) . MI.assocs
 \end{code}
 
 \begin{code}
+-- | Return all keys of the map in ascending order.
 sidMapKeys :: SID k => SIDMap a -> [k]
 sidMapKeys = map fromInt . MI.keys
 \end{code}
 
 \begin{code}
+-- | Create a map from a list of key/value pairs.
 sidMapFromList :: SID k => [(k,a)] -> SIDMap a
 sidMapFromList = MI.fromList . map (first toInt)
 \end{code}
 
 \begin{code}
+-- | Lookup the value at a key in the map.
 sidMapLookup ::SID k => k -> SIDMap a -> Maybe a
 sidMapLookup k = MI.lookup (toInt k)
 \end{code}
