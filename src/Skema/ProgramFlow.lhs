@@ -26,7 +26,7 @@ module Skema.ProgramFlow
       -- * Convertion functions
       generateJSONString, decodeJSONString, programFlowHash, openclKernelSource,
       -- * Utility functions
-      kernelInputPoints, kernelOutputPoints, programFlowGetNode,
+      kernelInputPoints, kernelOutputPoints, programFlowNode, programFlowKernel,
       outputPoints, inputPoints, unasignedOutputPoints, unasignedInputPoints, 
       arrowFrom, arrowsFromNode, arrowsToNode, freeNodeOut, boundedNodeIn, 
       boundedNodeOut, nodeIOpos ) 
@@ -105,8 +105,13 @@ data ProgramFlow = ProgramFlow
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-programFlowGetNode :: ProgramFlow -> PFNodeID -> PFNode
-programFlowGetNode pf nidx = (pfNodes pf) MI.! (toInt nidx)
+programFlowNode :: ProgramFlow -> PFNodeID -> PFNode
+programFlowNode pf nidx = (pfNodes pf) MI.! (toInt nidx)
+\end{code}
+
+\begin{code}
+programFlowKernel :: ProgramFlow -> String -> PFKernel
+programFlowKernel pf kidx = (pfKernels pf) M.! kidx
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
