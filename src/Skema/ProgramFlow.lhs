@@ -29,7 +29,8 @@ module Skema.ProgramFlow
       kernelInputPoints, kernelOutputPoints, programFlowNode, programFlowKernel,
       outputPoints, inputPoints, unasignedOutputPoints, unasignedInputPoints, 
       arrowFrom, arrowsFromNode, arrowsToNode, freeNodeOut, boundedNodeIn, 
-      boundedNodeOut, nodeIOpos, kernelIOPos ) 
+      boundedNodeOut, nodeIOpos, kernelIOPos, ioPointBufferSize, 
+      ioPointNumElems ) 
     where
 \end{code}
 
@@ -44,7 +45,7 @@ import qualified Data.IntMap as MI( empty, fromList, (!) )
 import qualified Data.Map as M( Map, empty, fromList, assocs, lookup, (!) )
 import Text.JSON
     ( Result(..), JSON(..), JSValue(..), makeObj, encode, decode, fromJSObject )
-import Skema.Types( IOPointType(..), IOPointDataType(..) )
+import Skema.Types( IOPointType(..), IOPointDataType(..), dataTypeSize )
 import Skema.JSON( smapToObj, objToSmap, jsonLookup )
 import Skema.SIDMap( SID(..), SIDMap, sidMapAssocs )
 \end{code}
@@ -249,6 +250,20 @@ isOutPoint = (==OutputPoint) . pfIOPType
 \begin{code}
 isInPoint :: PFIOPoint -> Bool
 isInPoint = (==InputPoint) . pfIOPType
+\end{code}
+
+\begin{code}
+ioPointBufferSize :: PFIOPoint -> Int -> Int
+ioPointBufferSize point limit = (limit `div` elemSize) * elemSize
+  where
+    elemSize = dataTypeSize . pfIOPDataType $ point
+\end{code}
+
+\begin{code}
+ioPointNumElems :: PFIOPoint -> Int -> Int
+ioPointNumElems point limit = limit `div` elemSize
+  where
+    elemSize = dataTypeSize . pfIOPDataType $ point
 \end{code}
 
 \begin{code}
