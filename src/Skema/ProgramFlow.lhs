@@ -29,7 +29,7 @@ module Skema.ProgramFlow
       kernelInputPoints, kernelOutputPoints, programFlowNode, programFlowKernel,
       outputPoints, inputPoints, unasignedOutputPoints, unasignedInputPoints, 
       arrowFrom, arrowsFromNode, arrowsToNode, freeNodeOut, boundedNodeIn, 
-      boundedNodeOut, nodeIOpos ) 
+      boundedNodeOut, nodeIOpos, kernelIOPos ) 
     where
 \end{code}
 
@@ -380,6 +380,13 @@ nodeIOpos nid name pf = fromJust $ elemIndex name names
     names = map fst . M.assocs $ pfkIOPoints kernel
     kernel = (pfKernels pf) M.! (pfnIndex node)
     node = (pfNodes pf) MI.! (toInt nid)
+\end{code}
+
+\begin{code}
+kernelIOPos :: PFKernel -> String -> Int
+kernelIOPos kernel name = fromJust $ elemIndex name names
+  where
+    names = map fst . M.assocs $ pfkIOPoints kernel
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
