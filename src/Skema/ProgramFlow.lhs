@@ -29,8 +29,8 @@ module Skema.ProgramFlow
       kernelInputPoints, kernelOutputPoints, programFlowNode, programFlowKernel,
       outputPoints, inputPoints, unasignedOutputPoints, unasignedInputPoints, 
       arrowFrom, arrowsFromNode, arrowsToNode, freeNodeOut, boundedNodeIn, 
-      boundedNodeOut, nodeIOpos, kernelIOPos, ioPointBufferSize, 
-      ioPointNumElems ) 
+      boundedNodeOut, nodeIOpos, kernelIOPos, ioPointDataSize, 
+      ioPointBufferSize, ioPointNumElems ) 
     where
 \end{code}
 
@@ -253,17 +253,22 @@ isInPoint = (==InputPoint) . pfIOPType
 \end{code}
 
 \begin{code}
+ioPointDataSize :: PFIOPoint -> Int
+ioPointDataSize = dataTypeSize . pfIOPDataType
+\end{code}
+
+\begin{code}
 ioPointBufferSize :: PFIOPoint -> Int -> Int
 ioPointBufferSize point limit = (limit `div` elemSize) * elemSize
   where
-    elemSize = dataTypeSize . pfIOPDataType $ point
+    elemSize = ioPointDataSize point
 \end{code}
 
 \begin{code}
 ioPointNumElems :: PFIOPoint -> Int -> Int
 ioPointNumElems point limit = limit `div` elemSize
   where
-    elemSize = dataTypeSize . pfIOPDataType $ point
+    elemSize = ioPointDataSize point
 \end{code}
 
 \begin{code}
