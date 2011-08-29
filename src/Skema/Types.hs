@@ -1,51 +1,42 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% This file is part of Skema-Common.
+-- -----------------------------------------------------------------------------
+-- This file is part of Skema-Common.
 
-% Skema-Common is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-%  (at your option) any later version.
+-- Skema-Common is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+--  (at your option) any later version.
 
-% Skema-Common is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
+-- Skema-Common is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
 
-% You should have received a copy of the GNU General Public License
-% along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
+-- You should have received a copy of the GNU General Public License
+-- along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
+-- -----------------------------------------------------------------------------
 -- | Useful types for Skema programs
 module Skema.Types( 
   IOPointType(..), IOPointDataType(..), openclTypeNames, isSameBaseType,
   dataTypeSize ) 
        where
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
+-- -----------------------------------------------------------------------------
 import Text.JSON( JSON(..), JSValue(..), Result(..), fromJSString )
 import qualified Data.Map as M( Map, (!), fromList, lookup )
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Swap is available in Base 4.3.1.* but not in 4.2.0.*
-\begin{code}
+-- -----------------------------------------------------------------------------
+-- Swap is available in Base 4.3.1.* but not in 4.2.0.*
 -- | interchange the values of a tuple
 swap :: (a,b) -> (b,a)
 swap (a,b) = (b,a)
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
+-- -----------------------------------------------------------------------------
 -- | Type of a comunication point of a node
 data IOPointType = InputPoint -- ^ Input
                  | OutputPoint -- ^ Output
                    deriving( Show, Read, Eq, Enum, Bounded )
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
+-- -----------------------------------------------------------------------------
 -- | Built-in data types of OpenCL programs
 data IOPointDataType = IOchar | IOuchar | IOshort | IOushort
                      | IOint | IOuint | IOlong | IOulong
@@ -63,9 +54,7 @@ data IOPointDataType = IOchar | IOuchar | IOshort | IOushort
                      | IOint16 | IOuint16 | IOlong16 | IOulong16
                      | IOfloat16
                      deriving( Eq, Enum, Ord, Bounded )
-\end{code}
 
-\begin{code}
 dataTypeBases :: [(IOPointDataType,IOPointDataType)]
 dataTypeBases = [
   (IOchar,IOuchar), (IOuchar,IOuchar), (IOshort,IOushort), (IOushort,IOushort), 
@@ -81,21 +70,15 @@ dataTypeBases = [
   (IOshort16,IOushort), (IOushort16,IOushort), (IOint16,IOuint), 
   (IOuint16,IOuint), (IOlong16,IOulong), (IOulong16,IOulong), 
   (IOfloat16,IOfloat)]
-\end{code}
 
-\begin{code}
 -- | get the equivalent scalar Data Type of a OpenCL Data Type. With integral
 -- types always return the unsigned one. Example: int16 base type is uint.
 dataTypeBase :: IOPointDataType -> IOPointDataType
 dataTypeBase = maybe (error "no datatype base") id . flip lookup dataTypeBases
-\end{code}
 
-\begin{code}
 isSameBaseType :: IOPointDataType -> IOPointDataType -> Bool
 isSameBaseType a b = a == b || (dataTypeBase a) == (dataTypeBase b)
-\end{code}
 
-\begin{code}
 dataTypeNames :: [(IOPointDataType,String)]
 dataTypeNames = [
   (IOchar, "char"), (IOuchar, "uchar"), (IOshort, "short"),
@@ -119,15 +102,11 @@ dataTypeShowTable = M.fromList $ dataTypeNames
 
 dataTypeReadTable :: M.Map String IOPointDataType
 dataTypeReadTable = M.fromList . map swap $ dataTypeNames
-\end{code}
 
-\begin{code}
 -- | names of the OpenCL Scalar and Vector Data Types.
 openclTypeNames :: [String]
 openclTypeNames = map snd dataTypeNames
-\end{code}
 
-\begin{code}
 dataTypeSizes :: [(IOPointDataType,Int)]
 dataTypeSizes = [
   (IOchar,1), (IOuchar,1), (IOshort,2), (IOushort,2), (IOint,4), (IOuint,4), 
@@ -139,44 +118,33 @@ dataTypeSizes = [
   (IOuint8,32), (IOlong8,64), (IOulong8,64), (IOfloat8,32), (IOchar16,16), 
   (IOuchar16,16), (IOshort16,32), (IOushort16,32), (IOint16,64), (IOuint16,64), 
   (IOlong16,128), (IOulong16,128), (IOfloat16,64)]
-\end{code}
 
-\begin{code}
 -- | get the size in bytes of a OpenCL Data Type.
 dataTypeSize :: IOPointDataType -> Int
 dataTypeSize = maybe (error "no datatype size") id . flip lookup dataTypeSizes
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
+-- -----------------------------------------------------------------------------
 instance Show IOPointDataType where
   show v = dataTypeShowTable M.! v
-\end{code}
 
-\begin{code}
 instance Read IOPointDataType where
   readsPrec _ r = do
     (k,t) <- lex r
     maybe [] (\v -> [(v,t)]) $ M.lookup k dataTypeReadTable
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
+-- -----------------------------------------------------------------------------
 instance JSON IOPointType where
     showJSON = showJSON . show
     readJSON (JSString v) = case (reads . fromJSString $ v) of
       [] -> Error "invalid string for IOPointType"
       (iot,_):_ -> Ok iot
     readJSON _ = Error "invalid value for IOPointType"
-\end{code}
 
-\begin{code}
 instance JSON IOPointDataType where
     showJSON = showJSON . show
     readJSON (JSString v) = case (reads . fromJSString $ v) of
       [] -> Error "invalid string for IOPointDataType"
       (iot,_):_ -> Ok iot
     readJSON _ = Error "invalid value for IOPointDataType"
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-- -----------------------------------------------------------------------------
