@@ -16,7 +16,7 @@
 -- -----------------------------------------------------------------------------
 -- | Data Values are haskell types representing Skema Program Types values
 module Skema.DataValue( 
-  DataValue(..), valueToByteString )
+  DataValue(..), updateDataValue, valueToByteString )
        where
 
 -- -----------------------------------------------------------------------------
@@ -24,6 +24,7 @@ import Data.Word( Word8, Word16, Word32, Word64 )
 import Data.Int( Int8, Int16, Int32, Int64 )
 import Data.Bits( (.&.), (.|.), shiftR, shiftL )
 import Data.Binary.IEEE754( floatToWord, wordToFloat )
+import GHC.Float( double2Float )
 import qualified Data.ByteString as B( 
   ByteString, empty, pack, index, singleton )
 
@@ -33,6 +34,18 @@ data DataValue = DVchar Int8 | DVuchar Word8 | DVshort Int16
                | DVlong Int64 | DVulong Word64 | DVfloat Float
                deriving( Show )
                        
+-- -----------------------------------------------------------------------------
+updateDataValue :: Double -> DataValue -> DataValue
+updateDataValue d (DVchar _) = DVchar $ round d
+updateDataValue d (DVuchar _) = DVuchar $ round d
+updateDataValue d (DVshort _) = DVshort $ round d
+updateDataValue d (DVushort _) = DVushort $ round d
+updateDataValue d (DVint _) = DVint $ round d
+updateDataValue d (DVuint _) = DVuint $ round d
+updateDataValue d (DVlong _) = DVlong $ round d
+updateDataValue d (DVulong _) = DVulong $ round d
+updateDataValue d (DVfloat _) = DVfloat $ double2Float d
+
 -- -----------------------------------------------------------------------------
 class Num a => ToByteString a where
   toByteString_le, toByteString_be :: a -> B.ByteString
