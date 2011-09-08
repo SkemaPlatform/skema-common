@@ -17,7 +17,7 @@
 -- | Useful types for Skema programs
 module Skema.Types( 
   IOPointType(..), IOPointDataType(..), openclTypeNames, isSameBaseType,
-  dataTypeSize ) 
+  dataTypeSize, dataTypeBase ) 
        where
 
 -- -----------------------------------------------------------------------------
