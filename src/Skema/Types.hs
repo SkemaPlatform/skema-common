@@ -57,18 +57,18 @@ data IOPointDataType = IOchar | IOuchar | IOshort | IOushort
 
 dataTypeBases :: [(IOPointDataType,IOPointDataType)]
 dataTypeBases = [
-  (IOchar,IOuchar), (IOuchar,IOuchar), (IOshort,IOushort), (IOushort,IOushort), 
-  (IOint,IOuint), (IOuint,IOuint), (IOlong,IOulong), (IOulong,IOulong), 
-  (IOfloat,IOfloat), (IOchar2,IOuchar), (IOuchar2,IOuchar), (IOshort2,IOushort), 
-  (IOushort2,IOushort), (IOint2,IOuint), (IOuint2,IOuint), (IOlong2,IOulong), 
-  (IOulong2,IOulong), (IOfloat2,IOfloat), (IOchar4,IOuchar), (IOuchar4,IOuchar), 
-  (IOshort4,IOushort), (IOushort4,IOushort), (IOint4,IOuint), (IOuint4,IOuint), 
-  (IOlong4,IOulong), (IOulong4,IOulong), (IOfloat4,IOfloat), (IOchar8,IOuchar),
-  (IOuchar8,IOuchar), (IOshort8,IOushort), (IOushort8,IOushort), 
-  (IOint8,IOuint), (IOuint8,IOuint), (IOlong8,IOulong), (IOulong8,IOulong), 
-  (IOfloat8,IOfloat), (IOchar16,IOuchar), (IOuchar16,IOuchar), 
-  (IOshort16,IOushort), (IOushort16,IOushort), (IOint16,IOuint), 
-  (IOuint16,IOuint), (IOlong16,IOulong), (IOulong16,IOulong), 
+  (IOchar,IOchar), (IOuchar,IOuchar), (IOshort,IOshort), (IOushort,IOushort), 
+  (IOint,IOint), (IOuint,IOuint), (IOlong,IOlong), (IOulong,IOulong), 
+  (IOfloat,IOfloat), (IOchar2,IOchar), (IOuchar2,IOuchar), (IOshort2,IOshort), 
+  (IOushort2,IOushort), (IOint2,IOint), (IOuint2,IOuint), (IOlong2,IOlong), 
+  (IOulong2,IOulong), (IOfloat2,IOfloat), (IOchar4,IOchar), (IOuchar4,IOuchar), 
+  (IOshort4,IOshort), (IOushort4,IOushort), (IOint4,IOint), (IOuint4,IOuint), 
+  (IOlong4,IOlong), (IOulong4,IOulong), (IOfloat4,IOfloat), (IOchar8,IOchar),
+  (IOuchar8,IOuchar), (IOshort8,IOshort), (IOushort8,IOushort), 
+  (IOint8,IOint), (IOuint8,IOuint), (IOlong8,IOlong), (IOulong8,IOulong), 
+  (IOfloat8,IOfloat), (IOchar16,IOchar), (IOuchar16,IOuchar), 
+  (IOshort16,IOshort), (IOushort16,IOushort), (IOint16,IOint), 
+  (IOuint16,IOuint), (IOlong16,IOlong), (IOulong16,IOulong), 
   (IOfloat16,IOfloat)]
 
 -- | get the equivalent scalar Data Type of a OpenCL Data Type. With integral
