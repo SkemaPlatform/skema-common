@@ -16,7 +16,8 @@
 -- -----------------------------------------------------------------------------
 -- | Data Values are haskell types representing Skema Program Types values
 module Skema.DataValue( 
-  DataValue(..), updateDataValue, valueToByteString )
+  DataValue(..), updateDataValue, extractValue, valueToByteString, 
+  valuesToByteString, convertToDataValues )
        where
 
 -- -----------------------------------------------------------------------------
@@ -24,9 +25,10 @@ import Data.Word( Word8, Word16, Word32, Word64 )
 import Data.Int( Int8, Int16, Int32, Int64 )
 import Data.Bits( (.&.), (.|.), shiftR, shiftL )
 import Data.Binary.IEEE754( floatToWord, wordToFloat )
-import GHC.Float( double2Float )
+import GHC.Float( double2Float, float2Double )
 import qualified Data.ByteString as B( 
-  ByteString, empty, pack, index, singleton )
+  ByteString, empty, pack, index, singleton, concat )
+import Skema.Types( IOPointDataType(..) )
 
 -- -----------------------------------------------------------------------------
 data DataValue = DVchar Int8 | DVuchar Word8 | DVshort Int16 
@@ -45,6 +47,18 @@ updateDataValue d (DVuint _) = DVuint $ round d
 updateDataValue d (DVlong _) = DVlong $ round d
 updateDataValue d (DVulong _) = DVulong $ round d
 updateDataValue d (DVfloat _) = DVfloat $ double2Float d
+
+-- -----------------------------------------------------------------------------
+extractValue :: DataValue -> Double
+extractValue (DVchar v) = fromIntegral v
+extractValue (DVuchar v) = fromIntegral v
+extractValue (DVshort v) = fromIntegral v
+extractValue (DVushort v) = fromIntegral v
+extractValue (DVint v) = fromIntegral v
+extractValue (DVuint v) = fromIntegral v
+extractValue (DVlong v) = fromIntegral v
+extractValue (DVulong v) = fromIntegral v
+extractValue (DVfloat v) = float2Double v
 
 -- -----------------------------------------------------------------------------
 class Num a => ToByteString a where
@@ -256,5 +270,13 @@ valueToByteString (DVuint v) = toByteString_le v
 valueToByteString (DVlong v) = toByteString_le v
 valueToByteString (DVulong v) = toByteString_le v
 valueToByteString (DVfloat v) = toByteString_le v
+  
+-- -----------------------------------------------------------------------------
+valuesToByteString :: [DataValue] -> B.ByteString
+valuesToByteString = B.concat . map valueToByteString
+
+-- -----------------------------------------------------------------------------
+convertToDataValues :: B.ByteString -> IOPointDataType -> [DataValue]
+convertToDataValues bs IOchar = [DVchar (fromByteString_le bs :: Int8)]
   
 -- -----------------------------------------------------------------------------
