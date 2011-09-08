@@ -27,8 +27,9 @@ import Data.Bits( (.&.), (.|.), shiftR, shiftL )
 import Data.Binary.IEEE754( floatToWord, wordToFloat )
 import GHC.Float( double2Float, float2Double )
 import qualified Data.ByteString as B( 
-  ByteString, empty, pack, index, singleton, concat )
-import Skema.Types( IOPointDataType(..) )
+  ByteString, empty, pack, index, singleton, concat, drop, take )
+import Skema.Types( 
+  IOPointDataType(..), dataTypeBase, dataTypeVectorSize, dataTypeSize )
 
 -- -----------------------------------------------------------------------------
 data DataValue = DVchar Int8 | DVuchar Word8 | DVshort Int16 
@@ -277,6 +278,20 @@ valuesToByteString = B.concat . map valueToByteString
 
 -- -----------------------------------------------------------------------------
 convertToDataValues :: B.ByteString -> IOPointDataType -> [DataValue]
-convertToDataValues bs IOchar = [DVchar (fromByteString_le bs :: Int8)]
+convertToDataValues b IOchar = [DVchar $ fromByteString_le b]
+convertToDataValues b IOuchar = [DVuchar $ fromByteString_le b]
+convertToDataValues b IOshort = [DVshort $ fromByteString_le b]
+convertToDataValues b IOushort = [DVushort $ fromByteString_le b]
+convertToDataValues b IOint = [DVint $ fromByteString_le b]
+convertToDataValues b IOuint = [DVuint $ fromByteString_le b]
+convertToDataValues b IOlong = [DVlong $ fromByteString_le b]
+convertToDataValues b IOulong = [DVulong $ fromByteString_le b]
+convertToDataValues b IOfloat = [DVfloat $ fromByteString_le b]
+convertToDataValues b t = convertNValues b (dataTypeBase t) (dataTypeVectorSize t)
   
+convertNValues :: B.ByteString -> IOPointDataType -> Int -> [DataValue]
+convertNValues b t n = concatMap (\x-> convertToDataValues x t)
+                       $ map (B.take (dataTypeSize t)) 
+                       $ take n $ iterate (B.drop (dataTypeSize t)) b
+
 -- -----------------------------------------------------------------------------
