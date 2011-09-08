@@ -15,7 +15,8 @@
 -- along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 -- -----------------------------------------------------------------------------
 -- | Data Values are haskell types representing Skema Program Types values
-module Skema.DataValue( DataValue(..) )
+module Skema.DataValue( 
+  DataValue(..), valueToByteString, byteStringToValue )
        where
 
 -- -----------------------------------------------------------------------------
@@ -183,10 +184,66 @@ instance ToByteString Word64 where
       g = (fromIntegral $ w `B.index` 1) `shiftL` 48
       h = (fromIntegral $ w `B.index` 0) `shiftL` 56
 
+instance ToByteString Int64 where
+  toByteString_le w = B.pack [a,b,c,d,e,f,g,h]
+    where
+      a = fromIntegral $ (w .&. 0xff)
+      b = fromIntegral $ (w .&. 0xff00) `shiftR` 8
+      c = fromIntegral $ (w .&. 0xff0000) `shiftR` 16
+      d = fromIntegral $ (w .&. 0xff000000) `shiftR` 24
+      e = fromIntegral $ (w .&. 0xff00000000) `shiftR` 32
+      f = fromIntegral $ (w .&. 0xff0000000000) `shiftR` 40
+      g = fromIntegral $ (w .&. 0xff000000000000) `shiftR` 48
+      h = fromIntegral $ (w .&. 0xff00000000000000) `shiftR` 56
+  toByteString_be w = B.pack [h,g,f,e,d,c,b,a]
+    where
+      a = fromIntegral $ (w .&. 0xff)
+      b = fromIntegral $ (w .&. 0xff00) `shiftR` 8
+      c = fromIntegral $ (w .&. 0xff0000) `shiftR` 16
+      d = fromIntegral $ (w .&. 0xff000000) `shiftR` 24
+      e = fromIntegral $ (w .&. 0xff00000000) `shiftR` 32
+      f = fromIntegral $ (w .&. 0xff0000000000) `shiftR` 40
+      g = fromIntegral $ (w .&. 0xff000000000000) `shiftR` 48
+      h = fromIntegral $ (w .&. 0xff00000000000000) `shiftR` 56
+  fromByteString_le w = a .|. b .|. c .|. d .|. e .|. f .|. g .|. h
+    where
+      a = fromIntegral $ w `B.index` 0
+      b = (fromIntegral $ w `B.index` 1) `shiftL` 8
+      c = (fromIntegral $ w `B.index` 2) `shiftL` 16
+      d = (fromIntegral $ w `B.index` 3) `shiftL` 24
+      e = (fromIntegral $ w `B.index` 4) `shiftL` 32
+      f = (fromIntegral $ w `B.index` 5) `shiftL` 40
+      g = (fromIntegral $ w `B.index` 6) `shiftL` 48
+      h = (fromIntegral $ w `B.index` 7) `shiftL` 56
+  fromByteString_be w = a .|. b .|. c .|. d .|. e .|. f .|. g .|. h
+    where
+      a = fromIntegral $ w `B.index` 7
+      b = (fromIntegral $ w `B.index` 6) `shiftL` 8
+      c = (fromIntegral $ w `B.index` 5) `shiftL` 16
+      d = (fromIntegral $ w `B.index` 4) `shiftL` 24
+      e = (fromIntegral $ w `B.index` 3) `shiftL` 32
+      f = (fromIntegral $ w `B.index` 2) `shiftL` 40
+      g = (fromIntegral $ w `B.index` 1) `shiftL` 48
+      h = (fromIntegral $ w `B.index` 0) `shiftL` 56
+
 instance ToByteString Float where
   toByteString_le = toByteString_le . floatToWord
   toByteString_be = toByteString_be . floatToWord
   fromByteString_le = wordToFloat . fromByteString_le
   fromByteString_be = wordToFloat . fromByteString_be
       
+-- -----------------------------------------------------------------------------
+valueToByteString :: DataValue -> B.ByteString
+valueToByteString (DVchar v) = toByteString_le v
+valueToByteString (DVuchar v) = toByteString_le v
+valueToByteString (DVshort v) = toByteString_le v
+valueToByteString (DVushort v) = toByteString_le v
+valueToByteString (DVint v) = toByteString_le v
+valueToByteString (DVuint v) = toByteString_le v
+valueToByteString (DVlong v) = toByteString_le v
+valueToByteString (DVulong v) = toByteString_le v
+valueToByteString (DVfloat v) = toByteString_le v
+  
+byteStringToValue = 0
+
 -- -----------------------------------------------------------------------------
