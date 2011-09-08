@@ -16,7 +16,7 @@
 -- -----------------------------------------------------------------------------
 -- | Data Values are haskell types representing Skema Program Types values
 module Skema.DataValue( 
-  DataValue(..), valueToByteString, byteStringToValue )
+  DataValue(..), valueToByteString )
        where
 
 -- -----------------------------------------------------------------------------
@@ -244,6 +244,4 @@ valueToByteString (DVlong v) = toByteString_le v
 valueToByteString (DVulong v) = toByteString_le v
 valueToByteString (DVfloat v) = toByteString_le v
   
-byteStringToValue = 0
-
 -- -----------------------------------------------------------------------------
