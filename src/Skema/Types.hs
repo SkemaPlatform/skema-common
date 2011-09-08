@@ -17,7 +17,7 @@
 -- | Useful types for Skema programs
 module Skema.Types( 
   IOPointType(..), IOPointDataType(..), openclTypeNames, isSameBaseType,
-  dataTypeSize, dataTypeBase ) 
+  dataTypeSize, dataTypeBase, dataTypeVectorSize ) 
        where
 
 -- -----------------------------------------------------------------------------
@@ -122,6 +122,23 @@ dataTypeSizes = [
 -- | get the size in bytes of a OpenCL Data Type.
 dataTypeSize :: IOPointDataType -> Int
 dataTypeSize = maybe (error "no datatype size") id . flip lookup dataTypeSizes
+
+dataTypeVectorSizes :: [(IOPointDataType,Int)]
+dataTypeVectorSizes = [
+  (IOchar,1), (IOuchar,1), (IOshort,1), (IOushort,1), (IOint,1), (IOuint,1), 
+  (IOlong,1), (IOulong,1), (IOfloat,1), (IOchar2,2), (IOuchar2,2), (IOshort2,2),
+  (IOushort2,2), (IOint2,2), (IOuint2,2), (IOlong2,2), (IOulong2,2), 
+  (IOfloat2,2), (IOchar4,4), (IOuchar4,4), (IOshort4,4), (IOushort4,4), 
+  (IOint4,4), (IOuint4,4), (IOlong4,4), (IOulong4,4), (IOfloat4,4), 
+  (IOchar8,8), (IOuchar8,8), (IOshort8,8), (IOushort8,8), (IOint8,8), 
+  (IOuint8,8), (IOlong8,8), (IOulong8,8), (IOfloat8,8), (IOchar16,16), 
+  (IOuchar16,16), (IOshort16,16), (IOushort16,16), (IOint16,16), (IOuint16,16), 
+  (IOlong16,16), (IOulong16,16), (IOfloat16,16)]
+
+-- | get the number of elements of the vector of a OpenCL Data Type.
+dataTypeVectorSize :: IOPointDataType -> Int
+dataTypeVectorSize = maybe (error "no datatype vector size") id 
+                     . flip lookup dataTypeVectorSizes
 
 -- -----------------------------------------------------------------------------
 instance Show IOPointDataType where
