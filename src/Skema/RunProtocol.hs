@@ -15,17 +15,27 @@
 -- along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 -- -----------------------------------------------------------------------------
 -- | Functions to work with the Run Protocol of Skema Platform.
-module Skema.RunProtocol( ServerPort(..), runBuffers, sendSkemaProgram )
+module Skema.RunProtocol( 
+  ServerPort(..), RPSkemaProgramID(..), runBuffers, sendSkemaProgram, 
+  jsonRPSkemaProgramID, parseRPSkemaProgramID )
        where
 
 -- -----------------------------------------------------------------------------
 import Control.Concurrent( forkIO )
 import Control.Concurrent.MVar( 
   MVar, putMVar, takeMVar, newMVar, modifyMVar_, withMVar, readMVar )
-import Control.Monad( forM_ )
+import Control.Monad( forM_, mzero )
 import Control.Exception( finally )
+import Data.Attoparsec (parse, Result(..))
+import Data.Functor( (<$>) )
 import Data.List( stripPrefix )
 import qualified Data.ByteString as BS( ByteString, empty, null, append )
+import qualified Data.ByteString.Char8 as BSC( pack )
+import qualified Data.ByteString.Lazy.Char8 as BSCL( ByteString, unpack )
+import Data.Aeson( 
+  FromJSON(..), ToJSON(..), object, (.=), (.:), encode, json )
+import qualified Data.Aeson.Types as T
+import Data.Text( pack )
 import Network.HTTP( Response(..), simpleHTTP )
 import Network.Socket( 
   SocketType(..), AddrInfo(..), AddrInfoFlag(..), Family(..), socket, sClose, 
@@ -64,6 +74,28 @@ getServerAddrInfo server = getAddrInfo desiredAddr
 -- -----------------------------------------------------------------------------
 data RPError = RPConnError | RPServerError
              deriving( Show )
+
+-- -----------------------------------------------------------------------------
+data RPSkemaProgramID = RPSkemaProgramID { pid :: ! BSCL.ByteString }
+                      deriving( Show )
+
+instance ToJSON RPSkemaProgramID where
+  toJSON (RPSkemaProgramID p) = object [pack "pid" .= p]
+  
+instance FromJSON RPSkemaProgramID where
+  parseJSON (T.Object v) = RPSkemaProgramID <$>
+                         v .: pack "pid"
+  parseJSON _          = mzero  
+  
+jsonRPSkemaProgramID :: RPSkemaProgramID -> String
+jsonRPSkemaProgramID = BSCL.unpack . encode . toJSON
+
+parseRPSkemaProgramID :: String -> Maybe RPSkemaProgramID
+parseRPSkemaProgramID s = case parse json bs of
+  (Done _ r) -> T.parseMaybe parseJSON r :: Maybe RPSkemaProgramID
+  _ -> Nothing
+  
+  where bs = BSC.pack s
 
 -- -----------------------------------------------------------------------------
 sendSkemaProgram :: ServerPort -> ProgramFlow -> IO (Either RPError String)
