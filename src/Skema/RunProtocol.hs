@@ -76,7 +76,8 @@ data RPError = RPConnError | RPServerError
              deriving( Show )
 
 -- -----------------------------------------------------------------------------
-data RPSkemaProgramID = RPSkemaProgramID { pid :: ! BSCL.ByteString }
+data RPSkemaProgramID = RPSkemaProgramID 
+                        { skemaProgramID :: ! BSCL.ByteString }
                       deriving( Show )
 
 instance ToJSON RPSkemaProgramID where
@@ -107,8 +108,11 @@ sendSkemaProgram server pf = do
         rst <- simpleHTTP rq
         case rst of
           Left _ -> return $ Left RPServerError
-          Right a -> return $ maybe (Left RPServerError) Right
-                     (stripPrefix "inserted " . rspBody $ a)
+          Right a -> do
+            print . rspBody $ a
+--            return $ maybe (Left RPServerError) Right
+--                     (stripPrefix "inserted " . rspBody $ a)
+            return $ Left RPServerError
     )
     (\_ -> return $ Left RPConnError
     )
