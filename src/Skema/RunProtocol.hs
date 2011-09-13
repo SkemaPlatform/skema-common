@@ -17,7 +17,7 @@
 -- | Functions to work with the Run Protocol of Skema Platform.
 module Skema.RunProtocol( 
   -- * Run Protocol Types
-  ServerPort(..), RPSkemaProgramID(..), 
+  ServerPort(..), RPSkemaProgramID(..), RPProgramList(..),
   -- * Run Protocol Functions
   runBuffers, sendSkemaProgram, jsonRPSkemaProgramID, parseRPSkemaProgramID, 
   jsonRPValue, parseRPJSON )
@@ -101,6 +101,19 @@ parseRPSkemaProgramID s = case parse json bs of
   
   where bs = BSC.pack s
 
+-- -----------------------------------------------------------------------------
+data RPProgramList = RPProgramList 
+                     { programList :: [BSCL.ByteString] }
+                     deriving( Show )
+                             
+instance ToJSON RPProgramList where
+  toJSON (RPProgramList ps) = object [pack "pidList" .= ps]
+  
+instance FromJSON RPProgramList where
+  parseJSON (T.Object v) = RPProgramList <$>
+                         v .: pack "pidList"
+  parseJSON _          = mzero  
+  
 -- -----------------------------------------------------------------------------
 jsonRPValue :: ToJSON a => a -> String
 jsonRPValue = BSCL.unpack . encode . toJSON
