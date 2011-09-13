@@ -19,7 +19,7 @@ module Skema.RunProtocol(
   -- * Run Protocol Types
   ServerPort(..), RPSkemaProgramID(..), RPProgramList(..),
   -- * Run Protocol Functions
-  runBuffers, sendSkemaProgram, jsonRPValue, parseRPJSON )
+  runBuffers, sendSkemaProgram )
        where
 
 -- -----------------------------------------------------------------------------
@@ -28,14 +28,11 @@ import Control.Concurrent.MVar(
   MVar, putMVar, takeMVar, newMVar, modifyMVar_, withMVar, readMVar )
 import Control.Monad( forM_, mzero )
 import Control.Exception( finally )
-import Data.Attoparsec (parse, Result(..))
 import Data.Functor( (<$>) )
 import Data.List( stripPrefix )
 import qualified Data.ByteString as BS( ByteString, empty, null, append )
-import qualified Data.ByteString.Char8 as BSC( pack )
-import qualified Data.ByteString.Lazy.Char8 as BSCL( ByteString, unpack )
-import Data.Aeson( 
-  FromJSON(..), ToJSON(..), object, (.=), (.:), encode, json )
+import qualified Data.ByteString.Lazy.Char8 as BSCL( ByteString )
+import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:) )
 import qualified Data.Aeson.Types as T
 import Data.Text( pack )
 import Network.HTTP( Response(..), simpleHTTP )
@@ -103,18 +100,6 @@ instance FromJSON RPProgramList where
                          v .: pack "pidList"
   parseJSON _          = mzero  
   
--- -----------------------------------------------------------------------------
-jsonRPValue :: ToJSON a => a -> String
-jsonRPValue = BSCL.unpack . encode . toJSON
-
-parseRPJSON :: FromJSON a => String -> Maybe a
-parseRPJSON s = case parse json (BSC.pack s) of
-  (Done _ r) -> parseMaybe' r
-  _ -> Nothing
-
-parseMaybe' :: FromJSON b => T.Value -> Maybe b
-parseMaybe' r = T.parseMaybe parseJSON r
-
 -- -----------------------------------------------------------------------------
 sendSkemaProgram :: ServerPort -> ProgramFlow -> IO (Either RPError String)
 sendSkemaProgram server pf = do

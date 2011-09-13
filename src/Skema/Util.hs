@@ -17,15 +17,20 @@
 -- | General functions for Skema programs
 module Skema.Util( 
   byteStringHex, hexByteString, prettyBytes, duplicates, isAcyclicGraph, 
-  topologicalSorting ) 
+  topologicalSorting, toJSONString, fromJSONString ) 
        where
 
 -- -----------------------------------------------------------------------------
+import Control.Arrow( (&&&) )
 import Data.ByteString.Lazy( ByteString, unpack, pack )
 import Data.Bits( (.&.), (.|.), shiftR, shiftL )
 import Data.Char( intToDigit, digitToInt )
 import Data.List( group, sort, nub )
-import Control.Arrow( (&&&) )
+import qualified Data.ByteString.Char8 as BSC( pack )
+import qualified Data.ByteString.Lazy.Char8 as BSCL( unpack )
+import Data.Aeson( FromJSON(..), ToJSON(..), encode, json )
+import qualified Data.Aeson.Types as T
+import Data.Attoparsec (parse, Result(..))
 
 -- -----------------------------------------------------------------------------
 -- | 'byteStringHex' converta a ByteString to a Hexadecimal representation.
@@ -62,6 +67,18 @@ prettyBytes' (s:ss) n
 
 duplicates :: Ord a => [a] -> [a]
 duplicates = map fst . filter ((>1) . snd) . map (head&&&length) . group . sort
+
+-- -----------------------------------------------------------------------------
+toJSONString :: ToJSON a => a -> String
+toJSONString = BSCL.unpack . encode . toJSON
+
+fromJSONString :: FromJSON a => String -> Maybe a
+fromJSONString s = case parse json (BSC.pack s) of
+  (Done _ r) -> parseMaybe' r
+  _ -> Nothing
+
+parseMaybe' :: FromJSON b => T.Value -> Maybe b
+parseMaybe' r = T.parseMaybe parseJSON r
 
 -- -----------------------------------------------------------------------------
 {-
