@@ -16,8 +16,11 @@
 -- -----------------------------------------------------------------------------
 -- | Functions to work with the Run Protocol of Skema Platform.
 module Skema.RunProtocol( 
-  ServerPort(..), RPSkemaProgramID(..), runBuffers, sendSkemaProgram, 
-  jsonRPSkemaProgramID, parseRPSkemaProgramID )
+  -- * Run Protocol Types
+  ServerPort(..), RPSkemaProgramID(..), 
+  -- * Run Protocol Functions
+  runBuffers, sendSkemaProgram, jsonRPSkemaProgramID, parseRPSkemaProgramID, 
+  jsonRPValue, parseRPJSON )
        where
 
 -- -----------------------------------------------------------------------------
@@ -97,6 +100,18 @@ parseRPSkemaProgramID s = case parse json bs of
   _ -> Nothing
   
   where bs = BSC.pack s
+
+-- -----------------------------------------------------------------------------
+jsonRPValue :: ToJSON a => a -> String
+jsonRPValue = BSCL.unpack . encode . toJSON
+
+parseRPJSON :: FromJSON a => String -> Maybe a
+parseRPJSON s = case parse json (BSC.pack s) of
+  (Done _ r) -> parseMaybe' r
+  _ -> Nothing
+
+parseMaybe' :: FromJSON b => T.Value -> Maybe b
+parseMaybe' r = T.parseMaybe parseJSON r
 
 -- -----------------------------------------------------------------------------
 sendSkemaProgram :: ServerPort -> ProgramFlow -> IO (Either RPError String)
