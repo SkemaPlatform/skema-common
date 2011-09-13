@@ -29,9 +29,8 @@ import Control.Concurrent.MVar(
 import Control.Monad( forM_, mzero )
 import Control.Exception( finally )
 import Data.Functor( (<$>) )
-import Data.List( stripPrefix )
 import qualified Data.ByteString as BS( ByteString, empty, null, append )
-import qualified Data.ByteString.Lazy.Char8 as BSCL( ByteString )
+import qualified Data.ByteString.Lazy.Char8 as BSCL( ByteString, unpack )
 import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:) )
 import qualified Data.Aeson.Types as T
 import Data.Text( pack )
@@ -44,6 +43,7 @@ import Skema.Network( postMultipartData, postFormUrlEncoded )
 import Skema.ProgramFlow( ProgramFlow, generateJSONString )
 import Skema.Concurrent( 
   ChildLocks, newChildLocks, newChildLock, endChildLock, waitForChildren )
+import Skema.Util( fromJSONString )
 
 -- -----------------------------------------------------------------------------
 data ServerPort = ServerPort
@@ -110,11 +110,11 @@ sendSkemaProgram server pf = do
         rst <- simpleHTTP rq
         case rst of
           Left _ -> return $ Left RPServerError
-          Right a -> do
-            print . rspBody $ a
---            return $ maybe (Left RPServerError) Right
---                     (stripPrefix "inserted " . rspBody $ a)
-            return $ Left RPServerError
+          Right a -> case rspCode a of
+            (2, 0, 0) -> return $ maybe (Left RPServerError) 
+                         (Right . BSCL.unpack . skemaProgramID)
+                         (fromJSONString . rspBody $ a)
+            _ -> return $ Left RPServerError
     )
     (\_ -> return $ Left RPConnError
     )
