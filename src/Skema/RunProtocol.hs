@@ -19,8 +19,7 @@ module Skema.RunProtocol(
   -- * Run Protocol Types
   ServerPort(..), RPSkemaProgramID(..), RPProgramList(..),
   -- * Run Protocol Functions
-  runBuffers, sendSkemaProgram, jsonRPSkemaProgramID, parseRPSkemaProgramID, 
-  jsonRPValue, parseRPJSON )
+  runBuffers, sendSkemaProgram, jsonRPValue, parseRPJSON )
        where
 
 -- -----------------------------------------------------------------------------
@@ -91,16 +90,6 @@ instance FromJSON RPSkemaProgramID where
                          v .: pack "pid"
   parseJSON _          = mzero  
   
-jsonRPSkemaProgramID :: RPSkemaProgramID -> String
-jsonRPSkemaProgramID = BSCL.unpack . encode . toJSON
-
-parseRPSkemaProgramID :: String -> Maybe RPSkemaProgramID
-parseRPSkemaProgramID s = case parse json bs of
-  (Done _ r) -> T.parseMaybe parseJSON r :: Maybe RPSkemaProgramID
-  _ -> Nothing
-  
-  where bs = BSC.pack s
-
 -- -----------------------------------------------------------------------------
 data RPProgramList = RPProgramList 
                      { programList :: [BSCL.ByteString] }
