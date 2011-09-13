@@ -23,12 +23,7 @@ module Skema.Types(
 -- -----------------------------------------------------------------------------
 import Text.JSON( JSON(..), JSValue(..), Result(..), fromJSString )
 import qualified Data.Map as M( Map, (!), fromList, lookup )
-
--- -----------------------------------------------------------------------------
--- Swap is available in Base 4.3.1.* but not in 4.2.0.*
--- | interchange the values of a tuple
-swap :: (a,b) -> (b,a)
-swap (a,b) = (b,a)
+import Data.Tuple( swap )
 
 -- -----------------------------------------------------------------------------
 -- | Type of a comunication point of a node

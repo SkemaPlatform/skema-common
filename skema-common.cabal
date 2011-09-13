@@ -1,6 +1,6 @@
 Name:          skema-common
 Version:       0.2.0
-Sypnosis:      Skema Platform Common Libraries
+Synopsis:      Skema Platform Common Libraries
 Description:   Skema Platform is a framework for distributed workflows executed on GPUs. This is the common package of all Skema Platform applications.
 License:       GPL
 License-file:  LICENSE
