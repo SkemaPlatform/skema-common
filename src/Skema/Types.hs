@@ -17,18 +17,13 @@
 -- | Useful types for Skema programs
 module Skema.Types( 
   IOPointType(..), IOPointDataType(..), openclTypeNames, isSameBaseType,
-  dataTypeSize ) 
+  dataTypeSize, dataTypeBase, dataTypeVectorSize ) 
        where
 
 -- -----------------------------------------------------------------------------
 import Text.JSON( JSON(..), JSValue(..), Result(..), fromJSString )
 import qualified Data.Map as M( Map, (!), fromList, lookup )
-
--- -----------------------------------------------------------------------------
--- Swap is available in Base 4.3.1.* but not in 4.2.0.*
--- | interchange the values of a tuple
-swap :: (a,b) -> (b,a)
-swap (a,b) = (b,a)
+import Data.Tuple( swap )
 
 -- -----------------------------------------------------------------------------
 -- | Type of a comunication point of a node
@@ -57,18 +52,18 @@ data IOPointDataType = IOchar | IOuchar | IOshort | IOushort
 
 dataTypeBases :: [(IOPointDataType,IOPointDataType)]
 dataTypeBases = [
-  (IOchar,IOuchar), (IOuchar,IOuchar), (IOshort,IOushort), (IOushort,IOushort), 
-  (IOint,IOuint), (IOuint,IOuint), (IOlong,IOulong), (IOulong,IOulong), 
-  (IOfloat,IOfloat), (IOchar2,IOuchar), (IOuchar2,IOuchar), (IOshort2,IOushort), 
-  (IOushort2,IOushort), (IOint2,IOuint), (IOuint2,IOuint), (IOlong2,IOulong), 
-  (IOulong2,IOulong), (IOfloat2,IOfloat), (IOchar4,IOuchar), (IOuchar4,IOuchar), 
-  (IOshort4,IOushort), (IOushort4,IOushort), (IOint4,IOuint), (IOuint4,IOuint), 
-  (IOlong4,IOulong), (IOulong4,IOulong), (IOfloat4,IOfloat), (IOchar8,IOuchar),
-  (IOuchar8,IOuchar), (IOshort8,IOushort), (IOushort8,IOushort), 
-  (IOint8,IOuint), (IOuint8,IOuint), (IOlong8,IOulong), (IOulong8,IOulong), 
-  (IOfloat8,IOfloat), (IOchar16,IOuchar), (IOuchar16,IOuchar), 
-  (IOshort16,IOushort), (IOushort16,IOushort), (IOint16,IOuint), 
-  (IOuint16,IOuint), (IOlong16,IOulong), (IOulong16,IOulong), 
+  (IOchar,IOchar), (IOuchar,IOuchar), (IOshort,IOshort), (IOushort,IOushort), 
+  (IOint,IOint), (IOuint,IOuint), (IOlong,IOlong), (IOulong,IOulong), 
+  (IOfloat,IOfloat), (IOchar2,IOchar), (IOuchar2,IOuchar), (IOshort2,IOshort), 
+  (IOushort2,IOushort), (IOint2,IOint), (IOuint2,IOuint), (IOlong2,IOlong), 
+  (IOulong2,IOulong), (IOfloat2,IOfloat), (IOchar4,IOchar), (IOuchar4,IOuchar), 
+  (IOshort4,IOshort), (IOushort4,IOushort), (IOint4,IOint), (IOuint4,IOuint), 
+  (IOlong4,IOlong), (IOulong4,IOulong), (IOfloat4,IOfloat), (IOchar8,IOchar),
+  (IOuchar8,IOuchar), (IOshort8,IOshort), (IOushort8,IOushort), 
+  (IOint8,IOint), (IOuint8,IOuint), (IOlong8,IOlong), (IOulong8,IOulong), 
+  (IOfloat8,IOfloat), (IOchar16,IOchar), (IOuchar16,IOuchar), 
+  (IOshort16,IOshort), (IOushort16,IOushort), (IOint16,IOint), 
+  (IOuint16,IOuint), (IOlong16,IOlong), (IOulong16,IOulong), 
   (IOfloat16,IOfloat)]
 
 -- | get the equivalent scalar Data Type of a OpenCL Data Type. With integral
@@ -122,6 +117,23 @@ dataTypeSizes = [
 -- | get the size in bytes of a OpenCL Data Type.
 dataTypeSize :: IOPointDataType -> Int
 dataTypeSize = maybe (error "no datatype size") id . flip lookup dataTypeSizes
+
+dataTypeVectorSizes :: [(IOPointDataType,Int)]
+dataTypeVectorSizes = [
+  (IOchar,1), (IOuchar,1), (IOshort,1), (IOushort,1), (IOint,1), (IOuint,1), 
+  (IOlong,1), (IOulong,1), (IOfloat,1), (IOchar2,2), (IOuchar2,2), (IOshort2,2),
+  (IOushort2,2), (IOint2,2), (IOuint2,2), (IOlong2,2), (IOulong2,2), 
+  (IOfloat2,2), (IOchar4,4), (IOuchar4,4), (IOshort4,4), (IOushort4,4), 
+  (IOint4,4), (IOuint4,4), (IOlong4,4), (IOulong4,4), (IOfloat4,4), 
+  (IOchar8,8), (IOuchar8,8), (IOshort8,8), (IOushort8,8), (IOint8,8), 
+  (IOuint8,8), (IOlong8,8), (IOulong8,8), (IOfloat8,8), (IOchar16,16), 
+  (IOuchar16,16), (IOshort16,16), (IOushort16,16), (IOint16,16), (IOuint16,16), 
+  (IOlong16,16), (IOulong16,16), (IOfloat16,16)]
+
+-- | get the number of elements of the vector of a OpenCL Data Type.
+dataTypeVectorSize :: IOPointDataType -> Int
+dataTypeVectorSize = maybe (error "no datatype vector size") id 
+                     . flip lookup dataTypeVectorSizes
 
 -- -----------------------------------------------------------------------------
 instance Show IOPointDataType where

@@ -1,12 +1,14 @@
 Name:          skema-common
-Version:       0.1.1
-Cabal-Version: >=1.8
-Description:   Skema Framework Common Libraries
+Version:       0.2.0
+Synopsis:      Skema Platform Common Libraries
+Description:   Skema Platform is a framework for distributed workflows executed on GPUs. This is the common package of all Skema Platform applications.
 License:       GPL
 License-file:  LICENSE
 Author:        Luis Cabellos
 Maintainer:    cabellos@ifca.unican.es
+Category:      Workflow, Distributed Computing, GPU
 Build-Type:    Simple
+Cabal-Version: >=1.8
 
 flag testing
     description: Testing mode
@@ -15,17 +17,19 @@ flag testing
 Library
   hs-source-dirs:  src
   ghc-options:     -Wall
-  Build-Depends:   base==4.*, containers>=0.3, bytestring==0.9.1.*, json==0.4.*, SHA==1.5.*, random==1.0.0.*, urlencoded==0.3.0.*, network==2.*, HTTP==4000.*
+  Build-Depends:   base==4.3.*, containers==0.4.0.*, bytestring==0.9.1.*, json==0.4.*, SHA==1.5.*, random==1.0.0.*, urlencoded==0.3.0.*, network==2.3.*, HTTP==4000.*, data-binary-ieee754==0.4.2.*, text==0.11.1.*, attoparsec==0.9.1.*, aeson==0.3.2.*
   extensions: CPP
   Exposed-modules:
     Skema.Util
     Skema.Math
     Skema.JSON
     Skema.Types
+    Skema.DataValue
     Skema.ProgramFlow
     Skema.Network
     Skema.Concurrent
     Skema.SIDMap
+    Skema.RunProtocol
   Other-modules:
   if flag(testing)
     buildable: False
@@ -34,7 +38,7 @@ Executable skema-common-test
   hs-source-dirs:  src src/test
   ghc-options:     -Wall -fhpc -Werror
   Main-is:         skema_common_test.lhs
-  Build-Depends:   base==4.*, QuickCheck >= 2, containers>=0.3, bytestring==0.9.1.*, json==0.4.*, SHA==1.5.*, random==1.0.0.*, urlencoded==0.3.0.*, network==2.*, HTTP==4000.*
+  Build-Depends:   base==4.3.*, QuickCheck >= 2, containers==0.4.0.*, bytestring==0.9.1.*, json==0.4.*, SHA==1.5.*, random==1.0.0.*, urlencoded==0.3.0.*, network==2.3.*, HTTP==4000.*, data-binary-ieee754==0.4.2.*, text==0.11.1.*, attoparsec==0.9.1.*, aeson==0.3.2.*
   cpp-options:   -DTESTING
 
   if flag(testing)

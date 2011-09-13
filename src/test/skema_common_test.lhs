@@ -45,6 +45,8 @@ import Skema.ProgramFlow
     unasignedOutputPoints, unasignedInputPoints, decodeJSONString )
 import Skema.Network()
 import Skema.Concurrent()
+import Skema.RunProtocol()
+import Skema.DataValue()
 import Skema.SIDMap( SID(..) )
 \end{code}
 
