@@ -22,8 +22,12 @@ module Skema.Types(
 
 -- -----------------------------------------------------------------------------
 import Text.JSON( JSON(..), JSValue(..), Result(..), fromJSString )
+import Control.Applicative( pure )
+import Control.Monad( mzero )
 import qualified Data.Map as M( Map, (!), fromList, lookup )
 import Data.Tuple( swap )
+import Data.Aeson( Value(..), ToJSON(..), FromJSON(..) )
+import qualified Data.Text as Txt( unpack )
 
 -- -----------------------------------------------------------------------------
 -- | Type of a comunication point of a node
@@ -159,4 +163,22 @@ instance JSON IOPointDataType where
       (iot,_):_ -> Ok iot
     readJSON _ = Error "invalid value for IOPointDataType"
 
+instance ToJSON IOPointType where
+  toJSON = toJSON . show
+  
+instance FromJSON IOPointType where
+  parseJSON (String v) = case (reads . Txt.unpack $ v) of
+      [] -> mzero
+      (iot,_):_ -> pure iot
+  parseJSON _ = mzero
+  
+instance ToJSON IOPointDataType where
+  toJSON = toJSON . show
+  
+instance FromJSON IOPointDataType where
+  parseJSON (String v) = case (reads . Txt.unpack $ v) of
+      [] -> mzero
+      (iot,_):_ -> pure iot
+  parseJSON _ = mzero
+  
 -- -----------------------------------------------------------------------------
