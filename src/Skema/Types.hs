@@ -75,6 +75,7 @@ dataTypeBases = [
 dataTypeBase :: IOPointDataType -> IOPointDataType
 dataTypeBase = maybe (error "no datatype base") id . flip lookup dataTypeBases
 
+-- | Check if two data types have the same scalar type.
 isSameBaseType :: IOPointDataType -> IOPointDataType -> Bool
 isSameBaseType a b = a == b || (dataTypeBase a) == (dataTypeBase b)
 

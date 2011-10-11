@@ -55,6 +55,7 @@ hexByteString = pack . map (fromInteger.toInteger).groupBinary . map digitToInt
 prettySymbols :: [String]
 prettySymbols = ["B", "KiB","MiB","GiB","TiB","PiB","EiB"]
 
+-- | String representation of a binary amount.
 prettyBytes :: Integral a => a -> String
 prettyBytes = prettyBytes' prettySymbols . fromIntegral
 
@@ -65,13 +66,16 @@ prettyBytes' (s:ss) n
   | n < 1024 = concat [show n, " ", s]
   | otherwise = prettyBytes' ss (n / 1024.0)
 
+-- | Fast remove of duplicates from a list. Fast than `nub`.
 duplicates :: Ord a => [a] -> [a]
 duplicates = map fst . filter ((>1) . snd) . map (head&&&length) . group . sort
 
 -- -----------------------------------------------------------------------------
+-- | Convert from a value to JSON `String`.
 toJSONString :: ToJSON a => a -> String
 toJSONString = BSCL.unpack . encode . toJSON
 
+-- | Convert from a JSON `String` to a value.
 fromJSONString :: FromJSON a => String -> Maybe a
 fromJSONString s = case parse json (BSC.pack s) of
   (Done _ r) -> parseMaybe' r
@@ -86,13 +90,19 @@ http://stackoverflow.com/questions/4168/graph-serialization/4577#4577
 http://en.wikipedia.org/wiki/Topological_sorting
 -}
 
-isAcyclicGraph :: Eq a => [(a,a)] -> Bool
+-- | Check if a directed graph is acyclic.
+isAcyclicGraph :: Eq a 
+                  => [(a,a)] -- ^ List of edges of the graph.
+                  -> Bool
 isAcyclicGraph edges = null graph
   where
     es = nub edges
     (graph,_) = topologicalSorting' (nodesWithoutIncoming es) es []
 
-topologicalSorting :: Eq a => [(a,a)] -> [a]
+-- | Calculate the topological sort of a directed graph.
+topologicalSorting :: Eq a 
+                      => [(a,a)] -- ^ List of edges of the graph.
+                      -> [a]
 topologicalSorting edges = reverse order
   where
     es = nub edges
