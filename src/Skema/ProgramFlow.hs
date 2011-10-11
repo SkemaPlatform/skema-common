@@ -47,6 +47,7 @@ import Skema.JSON( smapToObj, objToSmap, jsonLookup )
 import Skema.SIDMap( SID(..), SIDMap, sidMapAssocs )
 
 -- -----------------------------------------------------------------------------
+-- | Node id type.
 newtype PFNodeID = PFNodeID Int deriving( Show, Eq, Ord )
 instance SID PFNodeID where
   toInt (PFNodeID a) = a
@@ -87,9 +88,11 @@ data ProgramFlow = ProgramFlow
     } deriving( Show, Eq )
 
 -- -----------------------------------------------------------------------------
+-- | Get the Program Flow Node using its id.
 programFlowNode :: ProgramFlow -> PFNodeID -> PFNode
 programFlowNode pf nidx = (pfNodes pf) MI.! (toInt nidx)
 
+-- | Get the Program Flow Kernel using its name.
 programFlowKernel :: ProgramFlow -> String -> PFKernel
 programFlowKernel pf kidx = (pfKernels pf) M.! kidx
 
@@ -98,6 +101,7 @@ programFlowKernel pf kidx = (pfKernels pf) M.! kidx
 emptyProgramFlow :: ProgramFlow
 emptyProgramFlow = ProgramFlow M.empty MI.empty []
 
+-- | simple example Kernel.
 exampleKernel :: PFKernel
 exampleKernel = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];" 
               (M.fromList [
@@ -200,25 +204,36 @@ programFlowHash :: ProgramFlow -> ByteString
 programFlowHash = bytestringDigest.sha256 . pack . generateJSONString
 
 -- -----------------------------------------------------------------------------
+-- | Check if a Program Flow point is an Output point.
 isOutPoint :: PFIOPoint -> Bool
 isOutPoint = (==OutputPoint) . pfIOPType
 
+-- | Check if a Program Flow point is an input point.
 isInPoint :: PFIOPoint -> Bool
 isInPoint = (==InputPoint) . pfIOPType
 
+-- | Calculate the size in bytes of a IO point.
 ioPointDataSize :: PFIOPoint -> Int
 ioPointDataSize = dataTypeSize . pfIOPDataType
 
-ioPointBufferSize :: PFIOPoint -> Int -> Int
+-- | Calculate the buffer size, less than a limit, for a whole number of
+-- elements with a specific type.
+ioPointBufferSize :: PFIOPoint -- ^ type of the buffer elements.
+                     -> Int -- ^ limit of the buffer
+                     -> Int
 ioPointBufferSize point limit = (limit `div` elemSize) * elemSize
   where
     elemSize = ioPointDataSize point
 
-ioPointNumElems :: PFIOPoint -> Int -> Int
+-- | Calculate the number of whole elements that can be saved in a buffer
+ioPointNumElems :: PFIOPoint -- ^ type of the buffer elements.
+                   -> Int -- ^ size of the buffer
+                   -> Int
 ioPointNumElems point limit = limit `div` elemSize
   where
     elemSize = ioPointDataSize point
 
+-- | IO point in a Kernel instance.
 data IOPoint = IOPoint
     { iopType :: !IOPointType
     , iopDataType :: !IOPointDataType
@@ -226,37 +241,49 @@ data IOPoint = IOPoint
     , iopPoint :: !String}
                deriving( Show, Eq )
 
+-- | Returns the Output points from a Program Flow kernel.
 kernelOutputPoints :: PFKernel -> [(String,PFIOPoint)]
 kernelOutputPoints = filter (isOutPoint.snd) . M.assocs . pfkIOPoints
 
+-- | Returns the Input points from a Program Flow Kernel.
 kernelInputPoints :: PFKernel -> [(String,PFIOPoint)]
 kernelInputPoints = filter (isInPoint.snd) . M.assocs . pfkIOPoints
 
-createIOPoint :: PFNodeID -> (String, PFIOPoint) -> IOPoint
+-- | Create a IO point using a template.
+createIOPoint :: PFNodeID -- ^ id for the new `IOPoint`
+                 -> (String, PFIOPoint) -- ^ name and template.
+                 -> IOPoint
 createIOPoint idx (n,p) = IOPoint (pfIOPType p) (pfIOPDataType p) idx n
 
-kernelLookup :: ProgramFlow -> (a,PFNode) -> Maybe (a,PFKernel)
+-- | lookup in a Program Flow for a kernel using an instance of that kernel.
+kernelLookup :: ProgramFlow 
+                -> (a,PFNode) -- ^ Instance of the Kernel
+                -> Maybe (a,PFKernel)
 kernelLookup pf (k,n) = maybe Nothing (Just.((,) k)) (M.lookup key kernels)
   where 
     key = pfnIndex n
     kernels = (pfKernels pf)
 
+-- | Get the output `IOPoints` of a Program Flow.
 outputPoints :: ProgramFlow -> [IOPoint]
 outputPoints pf = concatMap (\(i,xs) -> map (createIOPoint i) xs) . map (second kernelOutputPoints) . mapMaybe (kernelLookup pf)$ nodes
   where
     nodes = sidMapAssocs $ pfNodes pf
 
+-- | Get the input `IOPoints` of a Program Flow.
 inputPoints :: ProgramFlow -> [IOPoint]
 inputPoints pf = concatMap (\(i,xs) -> map (createIOPoint i) xs) . map (second kernelInputPoints) . mapMaybe (kernelLookup pf)$ nodes
   where
     nodes = sidMapAssocs $ pfNodes pf
 
+-- | Get the unasigned output `IOPoints` of a Program Flow.
 unasignedOutputPoints :: ProgramFlow -> [IOPoint]
 unasignedOutputPoints pf = filter (not.(`elem`arrows).extract) $ outputPoints pf
   where
     arrows = map pfaOutput $ pfArrows pf
     extract p = (iopNode p, iopPoint p)
 
+-- | Get the unasigned input `IOPoints` of a Program Flow.
 unasignedInputPoints :: ProgramFlow -> [IOPoint]
 unasignedInputPoints pf = filter ((`notElem`arrows).extract) $ inputPoints pf
   where
@@ -264,23 +291,27 @@ unasignedInputPoints pf = filter ((`notElem`arrows).extract) $ inputPoints pf
     extract p = (iopNode p, iopPoint p)
 
 -- -----------------------------------------------------------------------------
+-- | Get the output arrow from a arrow point in a Program Flow.
 arrowFrom :: PFArrowPoint -> ProgramFlow -> PFArrow
 arrowFrom output pf = head . filter outfrom $ pfArrows pf
   where
     outfrom arr = (pfaOutput arr) == output
 
+-- | Get the arrows that out from a node.
 arrowsFromNode :: PFNodeID -> ProgramFlow -> [PFArrow]
 arrowsFromNode nid pf = arrows
   where
     arrows = filter outfrom $ pfArrows pf
     outfrom arr = (fst $ pfaOutput arr) == nid
 
+-- | Get the input arrow from a arrow point in a Program Flow.
 arrowsToNode :: PFNodeID -> ProgramFlow -> [PFArrow]
 arrowsToNode nid pf = arrows
   where
     arrows = filter into $ pfArrows pf
     into arr = (fst $ pfaInput arr) == nid
 
+-- | Obtain the names of free out points from a node.
 freeNodeOut :: PFNodeID -> ProgramFlow -> [String]
 freeNodeOut nid pf = map fst outs
   where
@@ -291,6 +322,7 @@ freeNodeOut nid pf = map fst outs
     arrows = map (snd.pfaOutput) $ arrowsFromNode nid pf
     check p = ((`notElem`arrows).fst $ p)&&(isOutPoint.snd $ p)
 
+-- | Obtain the names of bounded in points from a node.
 boundedNodeIn :: PFNodeID -> ProgramFlow -> [String]
 boundedNodeIn nid pf = map fst ins
   where
@@ -301,6 +333,7 @@ boundedNodeIn nid pf = map fst ins
     arrows = map (snd.pfaInput) $ arrowsToNode nid pf
     check p = ((`elem`arrows).fst $ p)&&(isInPoint.snd $ p)
 
+-- | Obtain the names of bounded out points from a node.
 boundedNodeOut :: PFNodeID -> ProgramFlow -> [String]
 boundedNodeOut nid pf = map fst ins
   where
@@ -311,6 +344,7 @@ boundedNodeOut nid pf = map fst ins
     arrows = map (snd.pfaOutput) $ arrowsFromNode nid pf
     check p = ((`elem`arrows).fst $ p)&&(isOutPoint.snd $ p)
 
+-- | get the index of a IO point in a node.
 nodeIOpos :: PFNodeID -> String -> ProgramFlow -> Int
 nodeIOpos nid name pf = fromJust $ elemIndex name names
   where
@@ -318,6 +352,7 @@ nodeIOpos nid name pf = fromJust $ elemIndex name names
     kernel = (pfKernels pf) M.! (pfnIndex node)
     node = (pfNodes pf) MI.! (toInt nid)
 
+-- | get the index of a IO point in a kernel.
 kernelIOPos :: PFKernel -> String -> Int
 kernelIOPos kernel name = fromJust $ elemIndex name names
   where
