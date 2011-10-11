@@ -27,7 +27,7 @@ import Text.Printf( printf )
 import qualified Text.JSON as JSON( encode, decode, Result(..) )
 import Control.Monad( replicateM, liftM )
 import Data.Char( isHexDigit, isPrint )
-import Data.List( intersect )
+import Data.List( intersect, nub )
 import qualified Data.ByteString.Lazy.Char8 as LC
   ( ByteString, fromChunks, length )
 import qualified Data.ByteString.Char8 as BC( ByteString, null, pack )
@@ -35,8 +35,10 @@ import qualified Data.Map as M( Map, fromList, size, keys )
 import qualified Data.IntMap as IM( IntMap, fromList )
 import System.Exit( exitSuccess, exitFailure )
 import Skema.Math( deg2rad, rad2deg )
-import Skema.Types( IOPointType(..), IOPointDataType(..) )
-import Skema.Util( hexByteString, byteStringHex )
+import Skema.Types( 
+  IOPointType(..), IOPointDataType(..), dataTypeVectorSize, dataTypeSize )
+import Skema.Util( 
+  hexByteString, byteStringHex, duplicates, topologicalSorting )
 import Skema.JSON( prettyJSON )
 import Skema.ProgramFlow( 
   PFNodeID, PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), 
@@ -150,6 +152,15 @@ prop_hexByteString xs = lenbs <= (fromIntegral.length) cad
 prop_hexByteString_ident :: LC.ByteString -> Bool
 prop_hexByteString_ident xs = (hexByteString . byteStringHex) xs == xs
 
+prop_duplicates :: [Int] -> Bool
+prop_duplicates xs = length xs >= (length . duplicates) xs
+                   
+prop_topological :: [(Int,Int)] -> Bool
+prop_topological xs = nodes == topo
+  where
+    nodes = nub topo
+    topo = topologicalSorting xs
+  
 -- -----------------------------------------------------------------------------
 -- Skema.JSON tests
 
@@ -194,6 +205,9 @@ prop_unasignedpoints pf = uai `intersect` uao == []
 prop_read_IOPointDataType :: Int -> IOPointDataType -> Bool
 prop_read_IOPointDataType d x = any (==(x,"")) (readsPrec d (showsPrec d x ""))
 
+prop_vector_types :: IOPointDataType -> Bool
+prop_vector_types x = dataTypeVectorSize x <= dataTypeSize x
+  
 prop_json_IOPointDataType :: IOPointDataType -> Bool
 prop_json_IOPointDataType v = (JSON.decode . JSON.encode) v == JSON.Ok v
 
@@ -216,11 +230,14 @@ ultraCheck = quickCheckWithResult stdArgs { maxSuccess=500, maxSize=5 }
 tests :: [(String, IO Result)]
 tests = [
   ("Skema.Math: radians to degrees", longCheck prop_rad2deg),
+  ("Skema.Types: vector sizes", longCheck prop_vector_types),
   ("Skema.Types: read IOPointDataType", longCheck prop_read_IOPointDataType),
   ("Skema.Types: json IOPointDataType", longCheck prop_json_IOPointDataType),
   ("Skema.Types: json IOPointType", longCheck prop_json_IOPointType),
+  ("Skema.Util: duplicates ", longCheck prop_duplicates),
   ("Skema.Util: hex -> ByteString", longCheck prop_hexByteString),
   ("Skema.Util: hex <-> ByteString id",longCheck prop_hexByteString_ident),
+  ("Skema.Util: topological sort",longCheck prop_topological),
   ("Skema.JSON: prettyJSON length", ultraCheck prop_prettyjson_length),
   ("Skema.ProgramFlow: encode Example", oneCheck prop_encodeExample),
   ("Skema.ProgramFlow: ProgramFlow -> JSON", ultraCheck prop_jsonProgramFlow),
