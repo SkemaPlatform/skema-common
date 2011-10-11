@@ -8,7 +8,7 @@ Author:        Luis Cabellos
 Maintainer:    cabellos@ifca.unican.es
 Category:      Workflow, Distributed Computing, GPU
 Build-Type:    Simple
-Cabal-Version: >=1.8
+Cabal-Version: >=1.9.2
 
 flag testing
     description: Testing mode
@@ -34,14 +34,10 @@ Library
   if flag(testing)
     buildable: False
 
-Executable skema-common-test
+Test-Suite skema-common-test
+  type:            exitcode-stdio-1.0
   hs-source-dirs:  src src/test
   ghc-options:     -Wall -fhpc -Werror
-  Main-is:         skema_common_test.lhs
+  Main-is:         skema_common_test.hs
   Build-Depends:   base==4.3.*, QuickCheck >= 2, containers==0.4.0.*, bytestring==0.9.1.*, json==0.4.*, SHA==1.5.*, random==1.0.0.*, urlencoded==0.3.0.*, network==2.3.*, HTTP==4000.*, data-binary-ieee754==0.4.2.*, text==0.11.1.*, attoparsec==0.9.1.*, aeson==0.3.2.*
   cpp-options:   -DTESTING
-
-  if flag(testing)
-    buildable: True
-  else
-    buildable: False
