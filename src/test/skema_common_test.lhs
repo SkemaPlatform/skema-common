@@ -21,10 +21,11 @@ module Main( main ) where
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-import Test.QuickCheck
-  ( Gen, Testable, Arbitrary(..), Args(..), stdArgs, quickCheckWith, elements, 
-    suchThat, listOf )
-import Test.QuickCheck.Property( Result, succeeded, failed )
+import Test.QuickCheck( 
+  Gen, Testable, Arbitrary(..), quickCheckWithResult, elements, suchThat, 
+  listOf )
+import Test.QuickCheck.Test( Args(..), Result, stdArgs, isSuccess )
+import qualified Test.QuickCheck.Property as P( Result, succeeded, failed )
 import Text.Printf( printf )
 import qualified Text.JSON as JSON( encode, decode, Result(..) )
 import Control.Monad( replicateM, liftM )
@@ -35,14 +36,15 @@ import qualified Data.ByteString.Lazy.Char8 as LC
 import qualified Data.ByteString.Char8 as BC( ByteString, null, pack )
 import qualified Data.Map as M( Map, fromList, size, keys )
 import qualified Data.IntMap as IM( IntMap, fromList )
+import System.Exit( exitSuccess, exitFailure )
 import Skema.Math( deg2rad, rad2deg )
 import Skema.Types( IOPointType(..), IOPointDataType(..) )
 import Skema.Util( hexByteString, byteStringHex )
 import Skema.JSON( prettyJSON )
-import Skema.ProgramFlow
-  ( PFNodeID, PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), 
-    ProgramFlow(..), generateJSONString, exampleProgramFlow, 
-    unasignedOutputPoints, unasignedInputPoints, decodeJSONString )
+import Skema.ProgramFlow( 
+  PFNodeID, PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), 
+  ProgramFlow(..), generateJSONString, exampleProgramFlow, unasignedOutputPoints, 
+  unasignedInputPoints, decodeJSONString )
 import Skema.Network()
 import Skema.Concurrent()
 import Skema.RunProtocol()
@@ -53,7 +55,9 @@ import Skema.SIDMap( SID(..) )
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
 main :: IO ()
-main = mapM_ (\(s,a) -> printf "%-25s: " s >> a) tests
+main = do
+  results <- mapM (\(s,a) -> printf "%-25s: " s >> a) tests
+  if (all isSuccess results) then exitSuccess else exitFailure
 \end{code}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -193,10 +197,10 @@ prop_jsonPrettyProgramFlow pf = case decodeJSONString cad of
 \end{code}
 
 \begin{code}
-prop_encodeExample :: Result
+prop_encodeExample :: P.Result
 prop_encodeExample = case gend of
-  JSON.Ok _ -> succeeded
-  _ -> failed
+  JSON.Ok _ -> P.succeeded
+  _ -> P.failed
   where
     trans = JSON.decode . JSON.encode
     gend = (trans exampleProgramFlow) :: (JSON.Result ProgramFlow)
@@ -230,27 +234,27 @@ prop_json_IOPointType v = (JSON.decode . JSON.encode) v == JSON.Ok v
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{code}
-longCheck :: Testable prop => prop -> IO ()
-longCheck = quickCheckWith stdArgs { maxSuccess=500 }
+longCheck :: Testable prop => prop -> IO Result
+longCheck = quickCheckWithResult stdArgs { maxSuccess=500 }
 \end{code}
 
 \begin{code}
-oneCheck :: Testable prop => prop -> IO ()
-oneCheck = quickCheckWith stdArgs { maxSuccess=1 }
+oneCheck :: Testable prop => prop -> IO Result
+oneCheck = quickCheckWithResult stdArgs { maxSuccess=1 }
 \end{code}
 
 \begin{code}
-fastCheck :: Testable prop => prop -> IO ()
-fastCheck = quickCheckWith stdArgs { maxSuccess=500, maxSize=10 }
+fastCheck :: Testable prop => prop -> IO Result
+fastCheck = quickCheckWithResult stdArgs { maxSuccess=500, maxSize=10 }
 \end{code}
 
 \begin{code}
-ultraCheck :: Testable prop => prop -> IO ()
-ultraCheck = quickCheckWith stdArgs { maxSuccess=500, maxSize=5 }
+ultraCheck :: Testable prop => prop -> IO Result
+ultraCheck = quickCheckWithResult stdArgs { maxSuccess=500, maxSize=5 }
 \end{code}
 
 \begin{code}
-tests :: [(String, IO ())]
+tests :: [(String, IO Result)]
 tests = [
   ("Skema.Math: radians to degrees", longCheck prop_rad2deg),
   ("Skema.Types: read IOPointDataType", longCheck prop_read_IOPointDataType),
