@@ -30,6 +30,7 @@ Library
     Skema.Concurrent
     Skema.SIDMap
     Skema.RunProtocol
+    Skema.JobProtocol
   Other-modules:
   if flag(testing)
     buildable: False
