@@ -14,6 +14,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 -- -----------------------------------------------------------------------------
+{-# LANGUAGE OverloadedStrings #-}
 -- | Functions to work with the Run Protocol of Skema Platform.
 module Skema.RunProtocol( 
   -- * Run Protocol Types
@@ -33,7 +34,6 @@ import qualified Data.ByteString as BS( ByteString, empty, null, append )
 import qualified Data.ByteString.Lazy.Char8 as BSCL( ByteString, unpack )
 import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:) )
 import qualified Data.Aeson.Types as T
-import Data.Text( pack )
 import Network.HTTP( Response(..), simpleHTTP )
 import Network.Socket( 
   SocketType(..), AddrInfo(..), AddrInfoFlag(..), Family(..), socket, sClose, 
@@ -80,11 +80,11 @@ data RPSkemaProgramID = RPSkemaProgramID
                       deriving( Show )
 
 instance ToJSON RPSkemaProgramID where
-  toJSON (RPSkemaProgramID p) = object [pack "pid" .= p]
+  toJSON (RPSkemaProgramID p) = object [ "pid" .= p ]
   
 instance FromJSON RPSkemaProgramID where
   parseJSON (T.Object v) = RPSkemaProgramID <$>
-                         v .: pack "pid"
+                         v .: "pid"
   parseJSON _          = mzero  
   
 -- -----------------------------------------------------------------------------
@@ -93,11 +93,11 @@ data RPProgramList = RPProgramList
                      deriving( Show )
                              
 instance ToJSON RPProgramList where
-  toJSON (RPProgramList ps) = object [pack "pidList" .= ps]
+  toJSON (RPProgramList ps) = object [ "pidList" .= ps ]
   
 instance FromJSON RPProgramList where
   parseJSON (T.Object v) = RPProgramList <$>
-                         v .: pack "pidList"
+                         v .: "pidList"
   parseJSON _          = mzero  
   
 -- -----------------------------------------------------------------------------
