@@ -15,37 +15,9 @@
 -- along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 -- -----------------------------------------------------------------------------
 -- | JSON utility functions.
-module Skema.JSON( prettyJSON, jsonLookup, smapToObj, objToSmap ) where
+module Skema.JSON( prettyJSON ) where
 
 -- -----------------------------------------------------------------------------
-import Text.JSON( JSON(..), Result(..), JSValue(..), makeObj, fromJSObject )
-import qualified Data.Map as M( Map, assocs, fromList )
-import Control.Arrow( second )
-
--- -----------------------------------------------------------------------------
--- | Looks up a key in an association list during JSON decode.
-jsonLookup :: String -- ^ key
-              -> [(String, a)] -- ^ association list
-              -> Result a -- ^ return the decoded value
-jsonLookup a as = maybe (fail $ "No element: " ++ a) return (lookup a as)
-
--- | Convert a `Map` String Value in a JSON object 
-smapToObj :: JSON a => M.Map String a -- ^ Map of values
-             -> JSValue -- ^ return the JSON object
-smapToObj = makeObj . map (second showJSON) . M.assocs
-
-extractResult :: (a,Result b) -> Result (a,b)
-extractResult (_, Error e) = Error e
-extractResult (a, Ok b) = Ok (a,b)
-
--- | Decode a JSON object as a `Map` of `String` keys
-objToSmap :: JSON a => JSValue -- ^ JSON object to decode
-             -> Result (M.Map String a) -- ^ return the decoded Map
-objToSmap (JSObject obj) = do
-  vals <- sequence . map (extractResult . second readJSON) $ fromJSObject obj
-  return $ M.fromList vals
-objToSmap _ = fail "obj to smap"
-
 -- | Generate a pretty string from a JSON string, putting line-breaks.
 prettyJSON :: String -- ^ original JSON string
               -> String -- ^ return prettified string

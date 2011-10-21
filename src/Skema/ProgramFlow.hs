@@ -35,7 +35,7 @@ module Skema.ProgramFlow
 
 -- -----------------------------------------------------------------------------
 import Control.Applicative( pure, (<*>) )
-import Control.Arrow( second, first )
+import Control.Arrow( second )
 import Control.Monad( mzero )
 import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:) )
 import qualified Data.Aeson.Types as Aeson
@@ -46,11 +46,9 @@ import Data.ByteString.Lazy.Char8( ByteString, pack )
 import Data.Digest.Pure.SHA( sha256, bytestringDigest )
 import qualified Data.IntMap as MI( empty, fromList, (!) )
 import qualified Data.Map as M( Map, empty, fromList, assocs, lookup, (!) )
-import Text.JSON
-    ( Result(..), JSON(..), JSValue(..), makeObj, encode, decode, fromJSObject )
 import Skema.Types( IOPointType(..), IOPointDataType(..), dataTypeSize )
-import Skema.JSON( smapToObj, objToSmap, jsonLookup )
 import Skema.SIDMap( SID(..), SIDMap, sidMapAssocs )
+import Skema.Util( toJSONString, fromJSONString )
 
 -- -----------------------------------------------------------------------------
 -- | Node id type.
@@ -195,75 +193,15 @@ exampleProgramFlow = emptyProgramFlow {
   }
 
 -- -----------------------------------------------------------------------------
-instance JSON PFIOPoint where
-    showJSON pfiop = makeObj 
-                     [ ("data", (showJSON . pfIOPDataType) pfiop )
-                     , ("type", (showJSON . pfIOPType) pfiop)]
-    readJSON (JSObject obj) = let
-      jsonObjAssoc = fromJSObject obj
-      in do
-        d <- jsonLookup "data" jsonObjAssoc >>= readJSON
-        t <- jsonLookup "type" jsonObjAssoc >>= readJSON
-        return $ PFIOPoint d t 
-    readJSON _ = fail "invalid PFIOPoint"
-
-instance JSON PFKernel where
-    showJSON pfk = makeObj 
-                   [ ("body", showJSON . pfkBody $ pfk)
-                   , ("io", smapToObj . pfkIOPoints $ pfk)]
-    readJSON (JSObject obj) = let
-      jsonObjAssoc = fromJSObject obj
-      in do
-        body <- jsonLookup "body" jsonObjAssoc >>= readJSON
-        io <- jsonLookup "io" jsonObjAssoc >>= objToSmap
-        return $ PFKernel body io
-    readJSON _ = Error "invalid PFKernel"
-
-instance JSON PFNode where
-    showJSON pfn = makeObj
-                   [ ("kernel", showJSON . pfnIndex $ pfn )]
-    readJSON (JSObject obj) = let
-      jsonObjAssoc = fromJSObject obj
-      in do
-        i <- jsonLookup "kernel" jsonObjAssoc >>= readJSON
-        return $ PFNode i
-    readJSON _ = fail "invalid PFNode"
-
-instance JSON PFArrow where
-    showJSON pfa = makeObj
-                   [ ("output", showJSON . first toInt . pfaOutput $ pfa)
-                   , ("input", showJSON . first toInt . pfaInput $ pfa)]
-    readJSON (JSObject obj) = let
-      jsonObjAssoc = fromJSObject obj
-      in do
-        os <- jsonLookup "output" jsonObjAssoc >>= fmap (first fromInt) . readJSON
-        is <- jsonLookup "input" jsonObjAssoc >>= fmap (first fromInt) . readJSON
-        return $ PFArrow os is
-    readJSON _ = fail "invalid PFArrow"
-
-instance JSON ProgramFlow where
-    showJSON pfn = makeObj
-                   [ ("kernels", smapToObj . pfKernels $ pfn)
-                   , ("nodes", showJSON . pfNodes $ pfn)
-                   , ("arrows", showJSON . pfArrows $ pfn)]
-    readJSON (JSObject obj) = let
-      jsonObjAssoc = fromJSObject obj
-      in do
-        ks <- jsonLookup "kernels" jsonObjAssoc >>= objToSmap
-        ns <- jsonLookup "nodes" jsonObjAssoc >>= readJSON
-        as <- jsonLookup "arrows" jsonObjAssoc >>= readJSON
-        return $ ProgramFlow ks ns as
-    readJSON _ = Error "invalid ProgramFlow"
-
 -- | Generate a JSON string from a Program Flow.
 generateJSONString :: ProgramFlow -> String
-generateJSONString = encode . showJSON
+generateJSONString = toJSONString
 
 -- | Decode a JSON string to obtain a Program Flow.
 decodeJSONString :: String -> Either String ProgramFlow
-decodeJSONString cad = case decode cad of
-  Ok pf -> Right pf
-  Error msg -> Left msg
+decodeJSONString cad = case fromJSONString cad of
+  Just pf -> Right pf
+  Nothing -> Left "error decoding json"
 
 -- -----------------------------------------------------------------------------
 -- | Obtain the SHA-256 value of a Program Flow. It use the JSON string of the

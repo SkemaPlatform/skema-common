@@ -24,7 +24,6 @@ import Test.QuickCheck(
 import Test.QuickCheck.Test( Args(..), Result, stdArgs, isSuccess )
 import qualified Test.QuickCheck.Property as P( Result, succeeded, failed )
 import Text.Printf( printf )
-import qualified Text.JSON as JSON( encode, decode, Result(..) )
 import Control.Monad( replicateM, liftM )
 import Data.Char( isHexDigit, isPrint )
 import Data.List( intersect, nub )
@@ -38,7 +37,8 @@ import Skema.Math( deg2rad, rad2deg )
 import Skema.Types( 
   IOPointType(..), IOPointDataType(..), dataTypeVectorSize, dataTypeSize )
 import Skema.Util( 
-  hexByteString, byteStringHex, duplicates, topologicalSorting )
+  hexByteString, byteStringHex, duplicates, topologicalSorting, fromJSONString, 
+  toJSONString )
 import Skema.JSON( prettyJSON )
 import Skema.ProgramFlow( 
   PFNodeID, PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), 
@@ -166,7 +166,7 @@ prop_topological xs = nodes == topo
 
 prop_prettyjson_length :: ProgramFlow -> Bool
 prop_prettyjson_length pf = length st <= (length . prettyJSON) st
-  where st = JSON.encode pf
+  where st = generateJSONString pf
 
 -- -----------------------------------------------------------------------------
 -- Skema.Programflow tests
@@ -187,11 +187,11 @@ prop_jsonPrettyProgramFlow pf = case decodeJSONString cad of
 
 prop_encodeExample :: P.Result
 prop_encodeExample = case gend of
-  JSON.Ok _ -> P.succeeded
+  Just _ -> P.succeeded
   _ -> P.failed
   where
-    trans = JSON.decode . JSON.encode
-    gend = (trans exampleProgramFlow) :: (JSON.Result ProgramFlow)
+    trans = fromJSONString . toJSONString
+    gend = (trans exampleProgramFlow) :: (Maybe ProgramFlow)
 
 prop_unasignedpoints :: ProgramFlow -> Bool
 prop_unasignedpoints pf = uai `intersect` uao == []
@@ -209,10 +209,10 @@ prop_vector_types :: IOPointDataType -> Bool
 prop_vector_types x = dataTypeVectorSize x <= dataTypeSize x
   
 prop_json_IOPointDataType :: IOPointDataType -> Bool
-prop_json_IOPointDataType v = (JSON.decode . JSON.encode) v == JSON.Ok v
+prop_json_IOPointDataType v = (fromJSONString . toJSONString) [v] == Just [v]
 
 prop_json_IOPointType :: IOPointType -> Bool
-prop_json_IOPointType v = (JSON.decode . JSON.encode) v == JSON.Ok v
+prop_json_IOPointType v = (fromJSONString . toJSONString) [v] == Just [v]
 
 -- -----------------------------------------------------------------------------
 longCheck :: Testable prop => prop -> IO Result

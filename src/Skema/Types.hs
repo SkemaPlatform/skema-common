@@ -21,7 +21,6 @@ module Skema.Types(
        where
 
 -- -----------------------------------------------------------------------------
-import Text.JSON( JSON(..), JSValue(..), Result(..), fromJSString )
 import Control.Applicative( pure )
 import Control.Monad( mzero )
 import qualified Data.Map as M( Map, (!), fromList, lookup )
@@ -150,20 +149,6 @@ instance Read IOPointDataType where
     maybe [] (\v -> [(v,t)]) $ M.lookup k dataTypeReadTable
 
 -- -----------------------------------------------------------------------------
-instance JSON IOPointType where
-    showJSON = showJSON . show
-    readJSON (JSString v) = case (reads . fromJSString $ v) of
-      [] -> Error "invalid string for IOPointType"
-      (iot,_):_ -> Ok iot
-    readJSON _ = Error "invalid value for IOPointType"
-
-instance JSON IOPointDataType where
-    showJSON = showJSON . show
-    readJSON (JSString v) = case (reads . fromJSString $ v) of
-      [] -> Error "invalid string for IOPointDataType"
-      (iot,_):_ -> Ok iot
-    readJSON _ = Error "invalid value for IOPointDataType"
-
 instance ToJSON IOPointType where
   toJSON = toJSON . show
   
