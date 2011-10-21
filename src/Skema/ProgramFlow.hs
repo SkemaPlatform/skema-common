@@ -14,6 +14,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 -- -----------------------------------------------------------------------------
+{-# LANGUAGE OverloadedStrings #-}
 -- | Module with the function relative to Program Flows.
 module Skema.ProgramFlow
     ( 
@@ -33,7 +34,12 @@ module Skema.ProgramFlow
     where
 
 -- -----------------------------------------------------------------------------
+import Control.Applicative( pure, (<*>) )
 import Control.Arrow( second, first )
+import Control.Monad( mzero )
+import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:) )
+import qualified Data.Aeson.Types as Aeson
+import Data.Functor( (<$>) )
 import Data.Maybe( mapMaybe, fromJust )
 import Data.List( intercalate, elemIndex )
 import Data.ByteString.Lazy.Char8( ByteString, pack )
@@ -53,12 +59,31 @@ instance SID PFNodeID where
   toInt (PFNodeID a) = a
   fromInt = PFNodeID  
 
+instance ToJSON PFNodeID where
+  toJSON = toJSON . toInt
+    
+instance FromJSON PFNodeID where
+  parseJSON (Aeson.Number n) = pure (fromInt . floor $ n)
+  parseJSON _ = mzero  
+                               
+-- -----------------------------------------------------------------------------
 -- | I/O point in a Program Flow.
 data PFIOPoint = PFIOPoint
     { pfIOPDataType :: !IOPointDataType -- ^ data type of the point
     , pfIOPType :: !IOPointType  -- ^ type of the point [Input|Output]
     } deriving( Show, Eq )
 
+instance ToJSON PFIOPoint where
+  toJSON (PFIOPoint dt t) = object [ "data" .= dt, 
+                                     "type" .= t ]
+                            
+instance FromJSON PFIOPoint where
+  parseJSON (Aeson.Object v) = PFIOPoint <$>
+                               v .: "data" <*> 
+                               v .: "type"
+  parseJSON _ = mzero  
+
+-- -----------------------------------------------------------------------------
 -- | Program Flow Kernel.
 data PFKernel = PFKernel
     { pfkBody :: !String -- ^ OpenCL body of the kernel.
@@ -66,11 +91,31 @@ data PFKernel = PFKernel
       -- ^ list of names I/O points or parameters
     } deriving( Show, Eq )
 
+instance ToJSON PFKernel where
+  toJSON (PFKernel body ps) = object [ "body" .= body, 
+                                       "io" .= ps ]
+                              
+instance FromJSON PFKernel where
+  parseJSON (Aeson.Object v) = PFKernel <$>
+                               v .: "body" <*> 
+                               v .: "io"
+  parseJSON _ = mzero  
+
+-- -----------------------------------------------------------------------------
 -- | Program Flow Node. A node is a instance of a Program Flow Kernel `PFKernel`.
 data PFNode = PFNode
     { pfnIndex :: !String -- ^ name of the kernel.
     } deriving( Show, Eq )
 
+instance ToJSON PFNode where
+  toJSON (PFNode idx) = object [ "kernel" .= idx ]
+  
+instance FromJSON PFNode where
+  parseJSON (Aeson.Object v) = PFNode <$> 
+                               v .: "kernel"
+  parseJSON _ = mzero  
+  
+-- -----------------------------------------------------------------------------
 -- | Define one of the two end points of a arrow in the Program Flow.
 type PFArrowPoint = (PFNodeID,String)
 
@@ -80,6 +125,17 @@ data PFArrow = PFArrow
     , pfaInput :: !PFArrowPoint -- ^ begin of the arrow
     } deriving( Show, Eq )
 
+instance ToJSON PFArrow where
+  toJSON (PFArrow outp inp) = object [ "output" .= outp, 
+                                       "input" .= inp ]
+
+instance FromJSON PFArrow where
+  parseJSON (Aeson.Object v) = PFArrow <$>
+                               v .: "output" <*>
+                               v .: "input"
+  parseJSON _ = mzero  
+
+-- -----------------------------------------------------------------------------
 -- | Program Flow.
 data ProgramFlow = ProgramFlow
     { pfKernels :: M.Map String PFKernel -- ^ Kernels used in the Program Flow
@@ -87,6 +143,18 @@ data ProgramFlow = ProgramFlow
     , pfArrows :: [PFArrow] -- ^ arrows between nodes
     } deriving( Show, Eq )
 
+instance ToJSON ProgramFlow where
+  toJSON (ProgramFlow ks ns as ) = object [ "kernels" .= ks, 
+                                            "nodes" .= ns, 
+                                            "arrows" .= as ]
+
+instance FromJSON ProgramFlow where
+  parseJSON (Aeson.Object v) = ProgramFlow <$>
+                               v .: "kernels" <*>
+                               v .: "nodes" <*>
+                               v .: "arrows"                         
+  parseJSON _ = mzero  
+  
 -- -----------------------------------------------------------------------------
 -- | Get the Program Flow Node using its id.
 programFlowNode :: ProgramFlow -> PFNodeID -> PFNode
