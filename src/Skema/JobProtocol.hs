@@ -18,7 +18,7 @@
 -- | Functions to work with the Job Protocol of Skema Platform.
 module Skema.JobProtocol( 
   -- * Job Protocol Types
-  JPJobID(..), JPJobList(..), JPJobRequest(..)
+  JPJobID(..), JPJobList(..), JPJobRequest(..), JPJobInfo(..),
   -- * Job Protocol Functions
    )
        where
@@ -71,6 +71,25 @@ instance FromJSON JPJobRequest where
   parseJSON (T.Object v) = JPJobRequest <$>
                            v .: "program" <*>
                            v .: "io"
+  parseJSON _          = mzero  
+                           
+-- -----------------------------------------------------------------------------
+data JPJobInfo = JPJobInfo
+             { jiJobID :: ! Integer,
+               jiUID :: ! Int,
+               jiSkemaProgram :: ! ProgramFlow
+             }
+
+instance ToJSON JPJobInfo where
+  toJSON (JPJobInfo jid uid pg) = object [ "jid" .= jid, 
+                                           "uid" .= uid, 
+                                           "program" .= pg ]
+  
+instance FromJSON JPJobInfo where
+  parseJSON (T.Object v) = JPJobInfo <$>
+                           v .: "jid" <*>
+                           v .: "uid" <*>
+                           v .: "program"
   parseJSON _          = mzero  
                            
 -- -----------------------------------------------------------------------------
