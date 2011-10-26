@@ -64,17 +64,20 @@ instance FromJSON JPJobList where
 -- -----------------------------------------------------------------------------
 data JPJobRequest = JPJobRequest
                     { jrSkemaProgram :: ! ProgramFlow,
-                      jrIO :: [String] }
+                      jrInput :: [String], 
+                      jrOutput :: [String] }
                   deriving( Show )
                           
 instance ToJSON JPJobRequest where
-  toJSON (JPJobRequest pg io) = object [ "program" .= pg, 
-                                         "io" .= io ]
+  toJSON (JPJobRequest pg inp outp) = object [ "program" .= pg, 
+                                         "inp" .= inp, 
+                                         "outp" .= outp ]
   
 instance FromJSON JPJobRequest where
   parseJSON (T.Object v) = JPJobRequest <$>
                            v .: "program" <*>
-                           v .: "io"
+                           v .: "inp" <*>
+                           v .: "outp"
   parseJSON _          = mzero  
                            
 -- -----------------------------------------------------------------------------
