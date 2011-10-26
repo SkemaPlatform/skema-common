@@ -16,15 +16,25 @@
 -- -----------------------------------------------------------------------------
 -- | Network Utilities for Skema programs
 {-# LANGUAGE MultiParamTypeClasses #-}
-module Skema.Network( postMultipartData, postFormUrlEncoded ) where
+module Skema.Network( 
+  postMultipartData, postFormUrlEncoded, addBasicAuthorize ) where
 
 -- -----------------------------------------------------------------------------
 import Data.List( intercalate )
 import Data.URLEncoded( export, importList )
+import qualified Data.ByteString.Base64 as Base64( encode )
+import Data.ByteString.Char8( unpack, pack )
 import Network.HTTP( 
-  Request(..), RequestMethod(POST), HeaderName(..), Header(..) )
+  Request(..), RequestMethod(POST), HeaderName(..), Header(..), HasHeaders, 
+  insertHeader )
 import Network.URI(  parseURI )
 import System.Random( randomRIO )
+
+-- -----------------------------------------------------------------------------
+-- | Add the Basic Authorize header to a Request
+addBasicAuthorize :: HasHeaders a => String -> a -> a
+addBasicAuthorize auth = insertHeader HdrAuthorization val
+  where val = "Basic " ++ (unpack . Base64.encode . pack $ auth )
 
 -- -----------------------------------------------------------------------------
 -- | Create a HTTP Request with a multipart header and data in it
