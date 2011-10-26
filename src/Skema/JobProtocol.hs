@@ -20,6 +20,7 @@ module Skema.JobProtocol(
   -- * Job Protocol Types
   JPJobID(..), JPJobList(..), JPJobRequest(..), JPJobInfo(..),
   -- * Job Protocol Functions
+  sendSkemaJob
    )
        where
 
@@ -29,7 +30,10 @@ import Control.Monad( mzero )
 import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:) )
 import qualified Data.Aeson.Types as T
 import Data.Functor( (<$>) )
+import Network.HTTP( simpleHTTP, Response(..) )
+import Skema.Network( postMultipartData, addBasicAuthorize )
 import Skema.ProgramFlow( ProgramFlow )
+import Skema.Util( toJSONString, fromJSONString )
 
 -- -----------------------------------------------------------------------------
 data JPJobID = JPJobID 
@@ -92,4 +96,13 @@ instance FromJSON JPJobInfo where
                            v .: "program"
   parseJSON _          = mzero  
                            
+-- -----------------------------------------------------------------------------
+sendSkemaJob :: String -> JPJobRequest -> String -> IO (Maybe JPJobID)
+sendSkemaJob url job user = do
+  rq <- postMultipartData (url ++ "/jobs") $ toJSONString job
+  rst <- simpleHTTP (addBasicAuthorize user rq)
+  case rst of
+    Left _ -> return Nothing
+    Right a -> return . fromJSONString . rspBody $ a
+
 -- -----------------------------------------------------------------------------
