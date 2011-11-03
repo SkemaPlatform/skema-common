@@ -37,10 +37,10 @@ module Skema.ProgramFlow
 import Control.Applicative( pure, (<*>) )
 import Control.Arrow( second )
 import Control.Monad( mzero )
-import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:) )
+import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:), (.:?) )
 import qualified Data.Aeson.Types as Aeson
 import Data.Functor( (<$>) )
-import Data.Maybe( mapMaybe, fromJust )
+import Data.Maybe( mapMaybe, fromJust, isJust )
 import Data.List( intercalate, elemIndex )
 import Data.ByteString.Lazy.Char8( ByteString, pack )
 import Data.Digest.Pure.SHA( sha256, bytestringDigest )
@@ -91,15 +91,18 @@ data PFKernel = PFKernel
     } deriving( Show, Eq )
 
 instance ToJSON PFKernel where
-  toJSON (PFKernel body ps wi) = object [ "body" .= body, 
-                                       "io" .= ps, 
-                                       "workitems" .= wi ]
+  toJSON (PFKernel body ps wi) 
+    | (isJust wi) = object [ "body" .= body, 
+                             "io" .= ps, 
+                             "workitems" .= wi ]
+    | otherwise = object [ "body" .= body, 
+                           "io" .= ps ]
                               
 instance FromJSON PFKernel where
   parseJSON (Aeson.Object v) = PFKernel <$>
                                v .: "body" <*> 
                                v .: "io" <*>
-                               v .: "workitems"
+                               v .:? "workitems"
   parseJSON _ = mzero  
 
 -- -----------------------------------------------------------------------------
