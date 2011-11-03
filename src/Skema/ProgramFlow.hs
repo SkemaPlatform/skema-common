@@ -87,16 +87,19 @@ data PFKernel = PFKernel
     { pfkBody :: !String -- ^ OpenCL body of the kernel.
     , pfkIOPoints :: M.Map String PFIOPoint 
       -- ^ list of names I/O points or parameters
+    , pfkWorkItems :: Maybe Int -- ^ number of work items
     } deriving( Show, Eq )
 
 instance ToJSON PFKernel where
-  toJSON (PFKernel body ps) = object [ "body" .= body, 
-                                       "io" .= ps ]
+  toJSON (PFKernel body ps wi) = object [ "body" .= body, 
+                                       "io" .= ps, 
+                                       "workitems" .= wi ]
                               
 instance FromJSON PFKernel where
   parseJSON (Aeson.Object v) = PFKernel <$>
                                v .: "body" <*> 
-                               v .: "io"
+                               v .: "io" <*>
+                               v .: "workitems"
   parseJSON _ = mzero  
 
 -- -----------------------------------------------------------------------------
@@ -173,6 +176,7 @@ exampleKernel = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];"
               (M.fromList [
                   ("i1",PFIOPoint IOfloat4 InputPoint),
                   ("o1",PFIOPoint IOfloat4 OutputPoint)])
+              Nothing
 
 -- | simple example Program Flow.
 exampleProgramFlow :: ProgramFlow
@@ -184,7 +188,8 @@ exampleProgramFlow = emptyProgramFlow {
                   ("i1",PFIOPoint IOfloat4 InputPoint),
                   ("i2",PFIOPoint IOchar InputPoint),
                   ("i3",PFIOPoint IOlong InputPoint),
-                  ("o1",PFIOPoint IOfloat4 OutputPoint)]))],
+                  ("o1",PFIOPoint IOfloat4 OutputPoint)])
+              (Just 20))],
   pfNodes= MI.fromList [(0, PFNode "kuno"),
                         (1, PFNode "kuno"),
                         (2, PFNode "kdos")],
