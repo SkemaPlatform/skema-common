@@ -20,7 +20,7 @@ module Skema.RunProtocol(
   -- * Run Protocol Types
   ServerPort(..), RPSkemaProgramID(..), RPProgramList(..),
   -- * Run Protocol Functions
-  runBuffers, sendSkemaProgram )
+  runBuffers, sendSkemaProgram, createSkemaRun )
        where
 
 -- -----------------------------------------------------------------------------
