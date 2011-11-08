@@ -17,7 +17,7 @@
 -- | Data Values are haskell types representing Skema Program Types values
 module Skema.DataValue( 
   DataValue(..), updateDataValue, extractValue, valueToByteString, 
-  valuesToByteString, convertToDataValues )
+  valuesToByteString, convertToDataValues, convertNValues )
        where
 
 -- -----------------------------------------------------------------------------
