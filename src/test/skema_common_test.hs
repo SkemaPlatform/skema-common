@@ -100,7 +100,7 @@ instance Arbitrary PFKernel where
       pname <- printableString
       d <- arbitrary
       return $ (pname,PFIOPoint d OutputPoint)
-    return $ PFKernel body (M.fromList (ips ++ ops))
+    return $ PFKernel body (M.fromList (ips ++ ops)) Nothing
   
 instance Arbitrary PFNode where
   arbitrary = printableString >>= return . PFNode
