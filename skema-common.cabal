@@ -9,7 +9,7 @@ Maintainer:    cabellos@ifca.unican.es
 Category:      Workflow, Distributed Computing, GPU
 Build-Type:    Simple
 Cabal-Version: >=1.9.2
-Extra-source-files:  README.org
+Extra-source-files:  README.org src/test/*.hs
 
 flag testing
     description: Testing mode
