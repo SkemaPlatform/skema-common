@@ -15,6 +15,7 @@
 -- along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 -- -----------------------------------------------------------------------------
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 -- | Functions to work with the Run Protocol of Skema Platform.
 module Skema.RunProtocol( 
   -- * Run Protocol Types
@@ -24,7 +25,7 @@ module Skema.RunProtocol(
        where
 
 -- -----------------------------------------------------------------------------
-import Control.Applicative( (<*>) )
+import Control.Applicative( pure, (<*>) )
 import Control.Concurrent( forkIO )
 import Control.Concurrent.MVar( 
   MVar, putMVar, takeMVar, newMVar, modifyMVar_, withMVar, readMVar )
@@ -37,11 +38,13 @@ import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:) )
 import qualified Data.Aeson.Types as T
 import Network.HTTP( Response(..), simpleHTTP )
 import Network.Socket( 
-  SocketType(..), AddrInfo(..), AddrInfoFlag(..), Family(..), socket, sClose, 
-  defaultHints, withSocketsDo, connect, getAddrInfo, defaultProtocol )
+  PortNumber, SocketType(..), AddrInfo(..), AddrInfoFlag(..), Family(..), 
+  socket, sClose, defaultHints, withSocketsDo, connect, getAddrInfo, 
+  defaultProtocol )
 import Network.Socket.ByteString( sendAll, recv )
 import Skema.Network( postMultipartData, postFormUrlEncoded )
-import Skema.ProgramFlow( ProgramFlow, PFNodeID, generateJSONString )
+import Skema.ProgramFlow( 
+  ProgramFlow, PFNodePoint, generateJSONString )
 import Skema.Concurrent( 
   ChildLocks, newChildLocks, newChildLock, endChildLock, waitForChildren )
 import Skema.Util( fromJSONString )
@@ -56,8 +59,8 @@ webhost :: ServerPort -> String
 webhost rs = "http://"++ spHostName rs ++ ":" ++ (show $ spPort rs)
 
 -- -----------------------------------------------------------------------------
-newServerPort :: ServerPort -> Int -> ServerPort
-newServerPort server p = server { spPort = p }
+newServerPort :: ServerPort -> PortNumber -> ServerPort
+newServerPort server p = server { spPort = fromIntegral p }
 
 -- -----------------------------------------------------------------------------
 desiredAddr :: Maybe AddrInfo
@@ -103,9 +106,21 @@ instance FromJSON RPProgramList where
   parseJSON _          = mzero  
   
 -- -----------------------------------------------------------------------------
+parseIntegral :: Integral a => T.Value -> T.Parser a
+parseIntegral (T.Number n) = pure (floor n)
+parseIntegral v          = T.typeMismatch "Integral" v
+
+instance ToJSON PortNumber where
+    toJSON = T.Number . fromIntegral
+    {-# INLINE toJSON #-}
+
+instance FromJSON PortNumber where
+    parseJSON = parseIntegral
+    {-# INLINE parseJSON #-}
+
 data RPRunIO = RPRunIO
-               { inPorts :: [((PFNodeID,String),Int)] 
-               , outPorts :: [((PFNodeID,String),Int)] }
+               { inPorts :: [(PFNodePoint, PortNumber)]
+               , outPorts :: [(PFNodePoint, PortNumber)] }
              deriving( Show )
                      
 instance ToJSON RPRunIO where
@@ -183,7 +198,7 @@ sendAsyncBuffer children serverport b ret = do
          `finally` endChildLock lock
   return ()
   
-sendBufferInputs :: ChildLocks -> ServerPort -> [Int] -> [BS.ByteString] 
+sendBufferInputs :: ChildLocks -> ServerPort -> [PortNumber] -> [BS.ByteString] 
                 -> MVar [MVar Bool] -> IO ()
 sendBufferInputs children server ports bs rets = do
   forM_ (zip ports bs) $ \(p,f) -> do
@@ -222,7 +237,7 @@ getAsyncBuffer children serverport ret = do
          `finally` endChildLock lock
   return ()
 
-getBufferOuputs :: ChildLocks -> ServerPort -> [Int] 
+getBufferOuputs :: ChildLocks -> ServerPort -> [PortNumber] 
                    -> MVar [MVar BS.ByteString] -> IO ()
 getBufferOuputs children server ports rets = do
   forM_ ports $ \p -> do

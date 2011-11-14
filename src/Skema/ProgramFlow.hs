@@ -19,7 +19,7 @@
 module Skema.ProgramFlow
     ( 
       -- * Types
-      PFNodeID, PFArrowPoint, PFIOPoint(..), PFKernel(..), ProgramFlow(..), 
+      PFNodeID, PFNodePoint, PFIOPoint(..), PFKernel(..), ProgramFlow(..), 
       PFNode(..), PFArrow(..), IOPoint(..), 
       -- * Basic values
       emptyProgramFlow, exampleProgramFlow, 
@@ -121,12 +121,12 @@ instance FromJSON PFNode where
   
 -- -----------------------------------------------------------------------------
 -- | Define one of the two end points of a arrow in the Program Flow.
-type PFArrowPoint = (PFNodeID,String)
+type PFNodePoint = (PFNodeID,String)
 
 -- | Program Flow arrow between two nodes.
 data PFArrow = PFArrow
-    { pfaOutput :: !PFArrowPoint -- ^ end of the arrow
-    , pfaInput :: !PFArrowPoint -- ^ begin of the arrow
+    { pfaOutput :: !PFNodePoint -- ^ end of the arrow
+    , pfaInput :: !PFNodePoint -- ^ begin of the arrow
     } deriving( Show, Eq )
 
 instance ToJSON PFArrow where
@@ -306,7 +306,7 @@ unasignedInputPoints pf = filter ((`notElem`arrows).extract) $ inputPoints pf
 
 -- -----------------------------------------------------------------------------
 -- | Get the output arrow from a arrow point in a Program Flow.
-arrowFrom :: PFArrowPoint -> ProgramFlow -> PFArrow
+arrowFrom :: PFNodePoint -> ProgramFlow -> PFArrow
 arrowFrom output pf = head . filter outfrom $ pfArrows pf
   where
     outfrom arr = (pfaOutput arr) == output
