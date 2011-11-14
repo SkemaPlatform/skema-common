@@ -24,6 +24,7 @@ module Skema.RunProtocol(
        where
 
 -- -----------------------------------------------------------------------------
+import Control.Applicative( (<*>) )
 import Control.Concurrent( forkIO )
 import Control.Concurrent.MVar( 
   MVar, putMVar, takeMVar, newMVar, modifyMVar_, withMVar, readMVar )
@@ -40,7 +41,7 @@ import Network.Socket(
   defaultHints, withSocketsDo, connect, getAddrInfo, defaultProtocol )
 import Network.Socket.ByteString( sendAll, recv )
 import Skema.Network( postMultipartData, postFormUrlEncoded )
-import Skema.ProgramFlow( ProgramFlow, generateJSONString )
+import Skema.ProgramFlow( ProgramFlow, PFNodeID, generateJSONString )
 import Skema.Concurrent( 
   ChildLocks, newChildLocks, newChildLock, endChildLock, waitForChildren )
 import Skema.Util( fromJSONString )
@@ -71,7 +72,8 @@ getServerAddrInfo server = getAddrInfo desiredAddr
                            (Just . show $ spPort server)
   
 -- -----------------------------------------------------------------------------
-data RPError = RPConnError | RPServerError
+data RPError = RPConnError | RPServerError | RPClientError 
+             | RPInternalServerError
              deriving( Show )
 
 -- -----------------------------------------------------------------------------
@@ -97,9 +99,24 @@ instance ToJSON RPProgramList where
   
 instance FromJSON RPProgramList where
   parseJSON (T.Object v) = RPProgramList <$>
-                         v .: "pidList"
+                           v .: "pidList"
   parseJSON _          = mzero  
   
+-- -----------------------------------------------------------------------------
+data RPRunIO = RPRunIO
+               { inPorts :: [((PFNodeID,String),Int)] 
+               , outPorts :: [((PFNodeID,String),Int)] }
+             deriving( Show )
+                     
+instance ToJSON RPRunIO where
+  toJSON (RPRunIO is os) = object [ "ins" .= is, "outs" .= os ]
+  
+instance FromJSON RPRunIO where
+  parseJSON (T.Object v) = RPRunIO <$>
+                           v .: "ins" <*>
+                           v .: "outs"
+  parseJSON _          = mzero  
+
 -- -----------------------------------------------------------------------------
 sendSkemaProgram :: ServerPort -> ProgramFlow -> IO (Either RPError String)
 sendSkemaProgram server pf = do
@@ -114,13 +131,15 @@ sendSkemaProgram server pf = do
             (2, 0, 0) -> return $ maybe (Left RPServerError) 
                          (Right . BSCL.unpack . skemaProgramID)
                          (fromJSONString . rspBody $ a)
+            (4, _, _) -> return $ Left RPClientError
+            (5, _, _) -> return $ Left RPInternalServerError
             _ -> return $ Left RPServerError
     )
     (\_ -> return $ Left RPConnError
     )
 
 -- -----------------------------------------------------------------------------
-createSkemaRun :: ServerPort -> String -> IO (Either RPError ([Int],[Int]))
+createSkemaRun :: ServerPort -> String -> IO (Either RPError RPRunIO)
 createSkemaRun server pkey = do
   catch 
     (do
@@ -128,9 +147,13 @@ createSkemaRun server pkey = do
         rst <- simpleHTTP rq
         case rst of
           Left _ -> return $ Left RPServerError
-          Right a -> catch 
-                     (return . Right . read $ rspBody a) 
-                     (const (return $ Left RPServerError))
+          Right a -> case rspCode a of
+            (2, 0, 0) -> return $ maybe (Left RPServerError)
+                         (Right)
+                         (fromJSONString . rspBody $ a) 
+            (4, _, _) -> return $ Left RPClientError
+            (5, _, _) -> return $ Left RPInternalServerError
+            _ -> return $ Left RPServerError
     )
     (\_ -> return $ Left RPConnError
     )
@@ -219,7 +242,9 @@ runBuffers xs server pf = do
       rcreate <- createSkemaRun server pid
       case rcreate of
         Left _ -> return Nothing
-        Right (iports,oports) -> do
+        Right ios -> do
+          let iports = map snd $ inPorts ios
+              oports = map snd $ outPorts ios
           children <- newChildLocks
           sends <- newMVar []
           rets <- newMVar []
