@@ -18,7 +18,7 @@
 -- | Functions to work with the Run Protocol of Skema Platform.
 module Skema.RunProtocol( 
   -- * Run Protocol Types
-  ServerPort(..), RPSkemaProgramID(..), RPProgramList(..),
+  ServerPort(..), RPSkemaProgramID(..), RPProgramList(..), RPRunIO(..),
   -- * Run Protocol Functions
   runBuffers, sendSkemaProgram, createSkemaRun )
        where
