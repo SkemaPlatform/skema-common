@@ -14,7 +14,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 -- -----------------------------------------------------------------------------
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
 -- | Module with the function relative to Program Flows.
 module Skema.ProgramFlow
     ( 
@@ -22,7 +22,7 @@ module Skema.ProgramFlow
       PFNodeID, PFNodePoint, PFIOPoint(..), PFKernel(..), ProgramFlow(..), 
       PFNode(..), PFArrow(..), IOPoint(..), 
       -- * Basic values
-      emptyProgramFlow, exampleProgramFlow, 
+      emptyProgramFlow, exampleProgramFlow, exampleKernel, exampleKernelWC,
       -- * Convertion functions
       generateJSONString, decodeJSONString, programFlowHash, openclKernelSource,
       -- * Utility functions
@@ -46,9 +46,16 @@ import Data.ByteString.Lazy.Char8( ByteString, pack )
 import Data.Digest.Pure.SHA( sha256, bytestringDigest )
 import qualified Data.IntMap as MI( empty, fromList, (!) )
 import qualified Data.Map as M( Map, empty, fromList, assocs, lookup, (!) )
+import Data.Text( Text )
 import Skema.Types( IOPointType(..), IOPointDataType(..), dataTypeSize )
 import Skema.SIDMap( SID(..), SIDMap, sidMapAssocs )
 import Skema.Util( toJSONString, fromJSONString )
+
+(.:/) :: (FromJSON a) => Aeson.Object -> (Text, a) -> Aeson.Parser a 
+obj .:/ (key, val) = case M.lookup key obj of
+  Nothing -> pure val
+  Just v  -> parseJSON v
+{-# INLINE (.:/) #-}
 
 -- -----------------------------------------------------------------------------
 -- | Node id type.
@@ -82,26 +89,47 @@ instance FromJSON PFIOPoint where
   parseJSON _ = mzero  
 
 -- -----------------------------------------------------------------------------
+-- | Const Buffer in a Kernel.
+data PFConstBuffer = PFConstBuffer
+                     { pfcbDataType :: !IOPointDataType 
+                       -- ^ data type of the const buffer
+                     }
+                   deriving( Show, Eq )
+                     
+instance ToJSON PFConstBuffer where
+  toJSON (PFConstBuffer dt) = object [ "data" .= dt ]
+                            
+instance FromJSON PFConstBuffer where
+  parseJSON (Aeson.Object v) = PFConstBuffer <$>
+                               v .: "data"
+  parseJSON _ = mzero  
+  
+-- -----------------------------------------------------------------------------
 -- | Program Flow Kernel.
 data PFKernel = PFKernel
     { pfkBody :: !String -- ^ OpenCL body of the kernel.
     , pfkIOPoints :: M.Map String PFIOPoint 
       -- ^ list of names I/O points or parameters
+    , pfkConstBuffers :: M.Map String PFConstBuffer
+      -- ^ list of const buffers
     , pfkWorkItems :: Maybe Int -- ^ number of work items
     } deriving( Show, Eq )
 
 instance ToJSON PFKernel where
-  toJSON (PFKernel body ps wi) 
+  toJSON (PFKernel body ps cs wi) 
     | (isJust wi) = object [ "body" .= body, 
                              "io" .= ps, 
+                             "const" .= cs, 
                              "workitems" .= wi ]
     | otherwise = object [ "body" .= body, 
-                           "io" .= ps ]
+                           "io" .= ps,
+                           "const" .= cs ]
                               
 instance FromJSON PFKernel where
   parseJSON (Aeson.Object v) = PFKernel <$>
                                v .: "body" <*> 
                                v .: "io" <*>
+                               v .:/ ("const", M.empty) <*>
                                v .:? "workitems"
   parseJSON _ = mzero  
 
@@ -179,6 +207,17 @@ exampleKernel = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];"
               (M.fromList [
                   ("i1",PFIOPoint IOfloat4 InputPoint),
                   ("o1",PFIOPoint IOfloat4 OutputPoint)])
+              M.empty
+              Nothing
+
+-- | simple example Kernel with const buffer.
+exampleKernelWC :: PFKernel
+exampleKernelWC = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];" 
+              (M.fromList [
+                  ("i1",PFIOPoint IOfloat4 InputPoint),
+                  ("o1",PFIOPoint IOfloat4 OutputPoint)])
+              (M.fromList [
+                  ("c1", PFConstBuffer IOfloat)])
               Nothing
 
 -- | simple example Program Flow.
@@ -192,6 +231,7 @@ exampleProgramFlow = emptyProgramFlow {
                   ("i2",PFIOPoint IOchar InputPoint),
                   ("i3",PFIOPoint IOlong InputPoint),
                   ("o1",PFIOPoint IOfloat4 OutputPoint)])
+              M.empty
               (Just 20))],
   pfNodes= MI.fromList [(0, PFNode "kuno"),
                         (1, PFNode "kuno"),
@@ -379,7 +419,12 @@ openclKernelSource name krn = concat ["__kernel void ", name,
                                       "( ", parameters, " ){\n", 
                                       pfkBody krn, "\n}"]
   where
-    parameters = intercalate ", " $ map parameter $ M.assocs $ pfkIOPoints krn
-    parameter (pn,t) = concat["__global ", show $ pfIOPDataType t, " *", pn]
+    ioparams = map iopar $ M.assocs $ pfkIOPoints krn
+    constparams = map constpar $ M.assocs $ pfkConstBuffers krn
+    sizeparams = map sizepar $ M.assocs $ pfkConstBuffers krn
+    parameters = intercalate ", " $ concat [ioparams, constparams, sizeparams]
+    iopar (pn,t) = concat["__global ", show $ pfIOPDataType t, " *", pn]
+    constpar (pn,t) = concat["__const ", show $ pfcbDataType t, " *", pn]
+    sizepar (pn,_) = concat["size_t sz_", pn]    
 
 -- -----------------------------------------------------------------------------
