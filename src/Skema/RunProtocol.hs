@@ -34,7 +34,7 @@ import Control.Monad( forM_, mzero )
 import Control.Exception( finally )
 import Data.Functor( (<$>) )
 import qualified Data.ByteString as BS( ByteString, empty, null, append )
-import qualified Data.ByteString.Lazy.Char8 as BSCL( ByteString, unpack )
+import qualified Data.ByteString.Lazy.Char8 as BSCL( ByteString )
 import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:) )
 import qualified Data.Aeson.Types as T
 import Network.HTTP( Response(..), simpleHTTP )
@@ -48,7 +48,7 @@ import Skema.ProgramFlow(
   ProgramFlow, PFNodePoint, generateJSONString )
 import Skema.Concurrent( 
   ChildLocks, newChildLocks, newChildLock, endChildLock, waitForChildren )
-import Skema.Util( fromJSONString )
+import Skema.Util( fromJSONString, toJSONString, hexByteString, byteStringHex )
 
 -- -----------------------------------------------------------------------------
 data ServerPort = ServerPort
@@ -113,12 +113,12 @@ data RPProgramRun = RPProgramRun
                   deriving( Show )
   
 instance ToJSON RPProgramRun where
-  toJSON (RPProgramRun pid cs) = object [ "pid" .= pid
+  toJSON (RPProgramRun pid cs) = object [ "pid" .= (byteStringHex pid)
                                         , "cbuffs" .= cs ]
   
 instance FromJSON RPProgramRun where
   parseJSON (T.Object v) = RPProgramRun <$>
-                           v .: "pid" <*>
+                           (fmap hexByteString $ v .: "pid") <*>
                            v .: "cbuffs"
   parseJSON _          = mzero  
   
@@ -150,7 +150,8 @@ instance FromJSON RPRunIO where
   parseJSON _          = mzero  
 
 -- -----------------------------------------------------------------------------
-sendSkemaProgram :: ServerPort -> ProgramFlow -> IO (Either RPError String)
+sendSkemaProgram :: ServerPort -> ProgramFlow 
+                    -> IO (Either RPError RPSkemaProgramID)
 sendSkemaProgram server pf = do
   let skmData = generateJSONString pf
   catch 
@@ -161,8 +162,7 @@ sendSkemaProgram server pf = do
           Left _ -> return $ Left RPServerError
           Right a -> case rspCode a of
             (2, 0, 0) -> return $ maybe (Left RPServerError) 
-                         (Right . BSCL.unpack . skemaProgramID)
-                         (fromJSONString . rspBody $ a)
+                         Right (fromJSONString . rspBody $ a)
             (4, _, _) -> return $ Left RPClientError
             (5, _, _) -> return $ Left RPInternalServerError
             _ -> return $ Left RPServerError
@@ -171,11 +171,12 @@ sendSkemaProgram server pf = do
     )
 
 -- -----------------------------------------------------------------------------
-createSkemaRun :: ServerPort -> String -> IO (Either RPError RPRunIO)
-createSkemaRun server pkey = do
+createSkemaRun :: ServerPort -> RPProgramRun -> IO (Either RPError RPRunIO)
+createSkemaRun server prun = do
   catch 
     (do
-        rq <- postFormUrlEncoded (webhost server ++ "/runs") [("pid",pkey)]
+        rq <- postFormUrlEncoded (webhost server ++ "/runs") 
+              [("data",toJSONString prun)]
         rst <- simpleHTTP rq
         case rst of
           Left _ -> return $ Left RPServerError
@@ -271,7 +272,7 @@ runBuffers xs server pf = do
   case rsend of
     Left _ -> return Nothing
     Right pid -> do
-      rcreate <- createSkemaRun server pid
+      rcreate <- createSkemaRun server $ RPProgramRun (skemaProgramID pid) []
       case rcreate of
         Left _ -> return Nothing
         Right ios -> do
