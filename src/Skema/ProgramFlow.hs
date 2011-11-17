@@ -19,8 +19,8 @@
 module Skema.ProgramFlow
     ( 
       -- * Types
-      PFNodeID, PFNodePoint, PFIOPoint(..), PFKernel(..), ProgramFlow(..), 
-      PFNode(..), PFArrow(..), IOPoint(..), 
+      PFNodeID, PFNodePoint, PFIOPoint(..), PFConstBuffer(..), PFKernel(..), 
+      ProgramFlow(..), PFNode(..), PFArrow(..), IOPoint(..), 
       -- * Basic values
       emptyProgramFlow, exampleProgramFlow, exampleKernel, exampleKernelWC,
       -- * Convertion functions
