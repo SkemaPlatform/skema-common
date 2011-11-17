@@ -19,7 +19,8 @@
 -- | Functions to work with the Run Protocol of Skema Platform.
 module Skema.RunProtocol( 
   -- * Run Protocol Types
-  ServerPort(..), RPSkemaProgramID(..), RPProgramList(..), RPRunIO(..),
+  ServerPort(..), RPSkemaProgramID(..), RPProgramList(..), RPProgramRun(..), 
+  RPRunIO(..),
   -- * Run Protocol Functions
   runBuffers, sendSkemaProgram, createSkemaRun )
        where
@@ -103,6 +104,22 @@ instance ToJSON RPProgramList where
 instance FromJSON RPProgramList where
   parseJSON (T.Object v) = RPProgramList <$>
                            v .: "pidList"
+  parseJSON _          = mzero  
+  
+-- -----------------------------------------------------------------------------
+data RPProgramRun = RPProgramRun
+                    { programID :: ! BSCL.ByteString
+                    , programConstData :: [(PFNodePoint, BS.ByteString)] }
+                  deriving( Show )
+  
+instance ToJSON RPProgramRun where
+  toJSON (RPProgramRun pid cs) = object [ "pid" .= pid
+                                        , "cbuffs" .= cs ]
+  
+instance FromJSON RPProgramRun where
+  parseJSON (T.Object v) = RPProgramRun <$>
+                           v .: "pid" <*>
+                           v .: "cbuffs"
   parseJSON _          = mzero  
   
 -- -----------------------------------------------------------------------------
