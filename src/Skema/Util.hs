@@ -16,18 +16,20 @@
 -- -----------------------------------------------------------------------------
 -- | General functions for Skema programs
 module Skema.Util( 
-  byteStringHex, hexByteString, prettyBytes, duplicates, isAcyclicGraph, 
-  topologicalSorting, toJSONString, fromJSONString ) 
+  byteStringHex, hexByteString, b64ByteString, byteStringB64, prettyBytes, 
+  duplicates, isAcyclicGraph, topologicalSorting, toJSONString, fromJSONString ) 
        where
 
 -- -----------------------------------------------------------------------------
 import Control.Arrow( (&&&) )
+import qualified Data.ByteString as BS( ByteString, unpack, pack )
 import Data.ByteString.Lazy( ByteString, unpack, pack )
 import Data.Bits( (.&.), (.|.), shiftR, shiftL )
-import Data.Char( intToDigit, digitToInt )
+import Data.Char( ord, chr, intToDigit, digitToInt )
 import Data.List( group, sort, nub )
 import qualified Data.ByteString.Char8 as BSC( pack )
 import qualified Data.ByteString.Lazy.Char8 as BSCL( unpack )
+import qualified Data.ByteString.Base64 as B64( encode, decodeLenient )
 import Data.Aeson( FromJSON(..), ToJSON(..), encode, json )
 import qualified Data.Aeson.Types as T
 import Data.Attoparsec (parse, Result(..))
@@ -50,6 +52,13 @@ hexByteString = pack . map (fromInteger.toInteger).groupBinary . map digitToInt
     groupBinary (x:[]) = [x .&. 0xf]
     groupBinary (x:y:xs) = binaryAdd x y : groupBinary xs
     binaryAdd x y = ((x .&. 0xf) `shiftL` 4) .|. (y .&. 0xf)
+
+-- -----------------------------------------------------------------------------
+byteStringB64 :: BS.ByteString -> String
+byteStringB64 = map (chr.fromIntegral) . BS.unpack . B64.encode
+  
+b64ByteString :: String -> BS.ByteString
+b64ByteString = B64.decodeLenient . BS.pack . map (fromIntegral.ord)
 
 -- -----------------------------------------------------------------------------
 prettySymbols :: [String]
