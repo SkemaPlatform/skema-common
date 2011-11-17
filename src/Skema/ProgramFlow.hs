@@ -425,6 +425,6 @@ openclKernelSource name krn = concat ["__kernel void ", name,
     parameters = intercalate ", " $ concat [ioparams, constparams, sizeparams]
     iopar (pn,t) = concat["__global ", show $ pfIOPDataType t, " *", pn]
     constpar (pn,t) = concat["__constant ", show $ pfcbDataType t, " *", pn]
-    sizepar (pn,_) = concat["int sz_", pn]    
+    sizepar (pn,_) = concat["const int sz_", pn]    
 
 -- -----------------------------------------------------------------------------
