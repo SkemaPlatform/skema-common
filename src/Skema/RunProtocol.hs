@@ -27,6 +27,7 @@ module Skema.RunProtocol(
 
 -- -----------------------------------------------------------------------------
 import Control.Applicative( pure, (<*>) )
+import Control.Arrow( second )
 import Control.Concurrent( forkIO )
 import Control.Concurrent.MVar( 
   MVar, putMVar, takeMVar, newMVar, modifyMVar_, withMVar, readMVar )
@@ -48,7 +49,7 @@ import Skema.ProgramFlow(
   ProgramFlow, PFNodePoint, generateJSONString )
 import Skema.Concurrent( 
   ChildLocks, newChildLocks, newChildLock, endChildLock, waitForChildren )
-import Skema.Util( fromJSONString, toJSONString, hexByteString, byteStringHex )
+import Skema.Util( fromJSONString, toJSONString, b64ByteString, byteStringB64 )
 
 -- -----------------------------------------------------------------------------
 data ServerPort = ServerPort
@@ -112,14 +113,20 @@ data RPProgramRun = RPProgramRun
                     , programConstData :: [(PFNodePoint, BS.ByteString)] }
                   deriving( Show )
   
+encodeB64 :: [(PFNodePoint, BS.ByteString)] -> [(PFNodePoint, String)]
+encodeB64 = map (second byteStringB64)
+
+decodeB64 :: [(PFNodePoint, String)] -> [(PFNodePoint, BS.ByteString)]
+decodeB64 = map (second b64ByteString)
+
 instance ToJSON RPProgramRun where
   toJSON (RPProgramRun pid cs) = object [ "pid" .= pid
-                                        , "cbuffs" .= cs ]
+                                        , "cbuffs" .= encodeB64 cs ]
   
 instance FromJSON RPProgramRun where
   parseJSON (T.Object v) = RPProgramRun <$>
                            v .: "pid" <*>
-                           v .: "cbuffs"
+                           (fmap decodeB64 $ v .: "cbuffs")
   parseJSON _          = mzero  
   
 -- -----------------------------------------------------------------------------
