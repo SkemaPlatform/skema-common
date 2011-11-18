@@ -22,7 +22,7 @@ module Skema.RunProtocol(
   ServerPort(..), RPSkemaProgramID(..), RPProgramList(..), RPProgramRun(..), 
   RPRunIO(..),
   -- * Run Protocol Functions
-  runBuffers, sendSkemaProgram, createSkemaRun )
+  runBuffers, runBuffersCB, sendSkemaProgram, createSkemaRun )
        where
 
 -- -----------------------------------------------------------------------------
@@ -113,12 +113,12 @@ data RPProgramRun = RPProgramRun
                   deriving( Show )
   
 instance ToJSON RPProgramRun where
-  toJSON (RPProgramRun pid cs) = object [ "pid" .= (byteStringHex pid)
+  toJSON (RPProgramRun pid cs) = object [ "pid" .= pid
                                         , "cbuffs" .= cs ]
   
 instance FromJSON RPProgramRun where
   parseJSON (T.Object v) = RPProgramRun <$>
-                           (fmap hexByteString $ v .: "pid") <*>
+                           v .: "pid" <*>
                            v .: "cbuffs"
   parseJSON _          = mzero  
   
@@ -273,6 +273,35 @@ runBuffers xs server pf = do
     Left _ -> return Nothing
     Right pid -> do
       rcreate <- createSkemaRun server $ RPProgramRun (skemaProgramID pid) []
+      case rcreate of
+        Left _ -> return Nothing
+        Right ios -> do
+          let iports = map snd $ inPorts ios
+              oports = map snd $ outPorts ios
+          children <- newChildLocks
+          sends <- newMVar []
+          rets <- newMVar []
+          
+          sendBufferInputs children server iports xs sends
+          getBufferOuputs children server oports rets
+        
+          waitForChildren children $ return ()
+          
+          sendsvals <- withMVar sends (mapM readMVar)
+        
+          if (all id $ sendsvals)
+            then withMVar rets (mapM readMVar) >>= return . Just
+            else return Nothing
+
+-- -----------------------------------------------------------------------------
+runBuffersCB :: [BS.ByteString] -> [(PFNodePoint, BS.ByteString)] -> ServerPort 
+                -> ProgramFlow -> IO (Maybe [BS.ByteString])
+runBuffersCB xs cbuffs server pf = do
+  rsend <- sendSkemaProgram server pf
+  case rsend of
+    Left _ -> return Nothing
+    Right pid -> do
+      rcreate <- createSkemaRun server $ RPProgramRun (skemaProgramID pid) cbuffs
       case rcreate of
         Left _ -> return Nothing
         Right ios -> do
