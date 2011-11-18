@@ -90,7 +90,7 @@ instance ToJSON RPSkemaProgramID where
   
 instance FromJSON RPSkemaProgramID where
   parseJSON (T.Object v) = RPSkemaProgramID <$>
-                         v .: "pid"
+                           v .: "pid"
   parseJSON _          = mzero  
   
 -- -----------------------------------------------------------------------------
