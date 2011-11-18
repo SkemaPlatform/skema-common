@@ -29,8 +29,8 @@ module Skema.ProgramFlow
       kernelInputPoints, kernelOutputPoints, programFlowNode, programFlowKernel,
       outputPoints, inputPoints, unasignedOutputPoints, unasignedInputPoints, 
       arrowFrom, arrowsFromNode, arrowsToNode, freeNodeOut, boundedNodeIn, 
-      boundedNodeOut, nodeIOpos, kernelIOPos, ioPointDataSize, 
-      ioPointBufferSize, ioPointNumElems ) 
+      boundedNodeOut, nodeIOpos, kernelIOPos, kernelConstBufferPos, 
+      ioPointDataSize, ioPointBufferSize, ioPointNumElems ) 
     where
 
 -- -----------------------------------------------------------------------------
@@ -45,7 +45,7 @@ import Data.List( intercalate, elemIndex )
 import Data.ByteString.Lazy.Char8( ByteString, pack )
 import Data.Digest.Pure.SHA( sha256, bytestringDigest )
 import qualified Data.IntMap as MI( empty, fromList, (!) )
-import qualified Data.Map as M( Map, empty, fromList, assocs, lookup, (!) )
+import qualified Data.Map as M( Map, size, empty, fromList, assocs, lookup, (!) )
 import Data.Text( Text )
 import Skema.Types( IOPointType(..), IOPointDataType(..), dataTypeSize )
 import Skema.SIDMap( SID(..), SIDMap, sidMapAssocs )
@@ -411,6 +411,15 @@ kernelIOPos :: PFKernel -> String -> Int
 kernelIOPos kernel name = fromJust $ elemIndex name names
   where
     names = map fst . M.assocs $ pfkIOPoints kernel
+
+-- | get the index of a Const Buffer in a kernel. It'll be i + number of IO
+-- points.
+kernelConstBufferPos :: PFKernel -> String -> Int
+kernelConstBufferPos kernel name = numIOElems 
+                                   + (fromJust $ elemIndex name names)
+  where
+    names = map fst . M.assocs $ pfkConstBuffers kernel
+    numIOElems = M.size $ pfkIOPoints kernel
 
 -- -----------------------------------------------------------------------------
 -- | Obtain the OpenCL source code of a named Kernel.
