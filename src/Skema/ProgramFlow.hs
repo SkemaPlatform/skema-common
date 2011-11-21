@@ -45,9 +45,11 @@ import Data.List( intercalate, elemIndex )
 import Data.ByteString.Lazy.Char8( ByteString, pack )
 import Data.Digest.Pure.SHA( sha256, bytestringDigest )
 import qualified Data.IntMap as MI( empty, fromList, (!) )
-import qualified Data.Map as M( Map, size, empty, fromList, assocs, lookup, (!) )
+import qualified Data.Map as M( 
+  Map, size, empty, fromList, elems, assocs, lookup, (!) )
 import Data.Text( Text )
-import Skema.Types( IOPointType(..), IOPointDataType(..), dataTypeSize )
+import Skema.Types( 
+  IOPointType(..), IOPointDataType(..), dataTypeSize, dataTypeBase )
 import Skema.SIDMap( SID(..), SIDMap, sidMapAssocs )
 import Skema.Util( toJSONString, fromJSONString )
 
@@ -421,13 +423,26 @@ kernelConstBufferPos kernel name = numIOElems
     names = map fst . M.assocs $ pfkConstBuffers kernel
     numIOElems = M.size $ pfkIOPoints kernel
 
+checkCL_KHR_FP64 :: PFKernel -> Bool
+checkCL_KHR_FP64 krn = any (==IOdouble) $ iosimpletypes ++ constsimpletypes
+  where
+    iosimpletypes = fmap (dataTypeBase . pfIOPDataType) . M.elems 
+                    $ pfkIOPoints krn
+    constsimpletypes = fmap (dataTypeBase . pfcbDataType) . M.elems 
+                       $ pfkConstBuffers krn
+    
 -- -----------------------------------------------------------------------------
 -- | Obtain the OpenCL source code of a named Kernel.
 openclKernelSource :: String -> PFKernel -> String
-openclKernelSource name krn = concat ["__kernel void ", name, 
-                                      "( ", parameters, " ){\n", 
-                                      pfkBody krn, "\n}"]
+openclKernelSource name krn = concat 
+                              [ fp64Pragma
+                              , "__kernel void ", name
+                              , "( ", parameters, " ){\n"
+                              , pfkBody krn, "\n}"]
   where
+    fp64Pragma = if checkCL_KHR_FP64 krn 
+                 then "#pragma OPENCL EXTENSION cl_khr_fp64: enable\n"
+                 else ""
     ioparams = map iopar $ M.assocs $ pfkIOPoints krn
     constparams = map constpar $ M.assocs $ pfkConstBuffers krn
     sizeparams = map sizepar $ M.assocs $ pfkConstBuffers krn
