@@ -36,38 +36,44 @@ data IOPointType = InputPoint -- ^ Input
 
 -- -----------------------------------------------------------------------------
 -- | Built-in data types of OpenCL programs
-data IOPointDataType = IOchar | IOuchar | IOshort | IOushort
-                     | IOint | IOuint | IOlong | IOulong
-                     | IOfloat
-                     | IOchar2 | IOuchar2 | IOshort2 | IOushort2
-                     | IOint2 | IOuint2 | IOlong2 | IOulong2
-                     | IOfloat2
-                     | IOchar4 | IOuchar4 | IOshort4 | IOushort4
-                     | IOint4 | IOuint4 | IOlong4 | IOulong4
-                     | IOfloat4
-                     | IOchar8 | IOuchar8 | IOshort8 | IOushort8
-                     | IOint8 | IOuint8 | IOlong8 | IOulong8
-                     | IOfloat8
+data IOPointDataType = IOchar | IOuchar | IOshort | IOushort | IOint | IOuint 
+                     | IOlong | IOulong | IOfloat | IOdouble
+                                                    
+                     | IOchar2 | IOuchar2 | IOshort2 | IOushort2 | IOint2 
+                     | IOuint2 | IOlong2 | IOulong2 | IOfloat2 | IOdouble2
+                                                                 
+                     | IOchar4 | IOuchar4 | IOshort4 | IOushort4 | IOint4 
+                     | IOuint4 | IOlong4 | IOulong4 | IOfloat4 | IOdouble4
+                                                                 
+                     | IOchar8 | IOuchar8 | IOshort8 | IOushort8 | IOint8 
+                     | IOuint8 | IOlong8 | IOulong8 | IOfloat8 | IOdouble8
+                                                                 
                      | IOchar16 | IOuchar16 | IOshort16 | IOushort16
                      | IOint16 | IOuint16 | IOlong16 | IOulong16
-                     | IOfloat16
+                     | IOfloat16 | IOdouble16
                      deriving( Eq, Enum, Ord, Bounded )
 
 dataTypeBases :: [(IOPointDataType,IOPointDataType)]
 dataTypeBases = [
   (IOchar,IOchar), (IOuchar,IOuchar), (IOshort,IOshort), (IOushort,IOushort), 
   (IOint,IOint), (IOuint,IOuint), (IOlong,IOlong), (IOulong,IOulong), 
-  (IOfloat,IOfloat), (IOchar2,IOchar), (IOuchar2,IOuchar), (IOshort2,IOshort), 
+  (IOfloat,IOfloat), (IOdouble,IOdouble), 
+  
+  (IOchar2,IOchar), (IOuchar2,IOuchar), (IOshort2,IOshort), 
   (IOushort2,IOushort), (IOint2,IOint), (IOuint2,IOuint), (IOlong2,IOlong), 
-  (IOulong2,IOulong), (IOfloat2,IOfloat), (IOchar4,IOchar), (IOuchar4,IOuchar), 
-  (IOshort4,IOshort), (IOushort4,IOushort), (IOint4,IOint), (IOuint4,IOuint), 
-  (IOlong4,IOlong), (IOulong4,IOulong), (IOfloat4,IOfloat), (IOchar8,IOchar),
-  (IOuchar8,IOuchar), (IOshort8,IOshort), (IOushort8,IOushort), 
-  (IOint8,IOint), (IOuint8,IOuint), (IOlong8,IOlong), (IOulong8,IOulong), 
-  (IOfloat8,IOfloat), (IOchar16,IOchar), (IOuchar16,IOuchar), 
-  (IOshort16,IOshort), (IOushort16,IOushort), (IOint16,IOint), 
-  (IOuint16,IOuint), (IOlong16,IOlong), (IOulong16,IOulong), 
-  (IOfloat16,IOfloat)]
+  (IOulong2,IOulong), (IOfloat2,IOfloat), (IOdouble2,IOdouble), 
+  
+  (IOchar4,IOchar), (IOuchar4,IOuchar), (IOshort4,IOshort), (IOushort4,IOushort), 
+  (IOint4,IOint), (IOuint4,IOuint), (IOlong4,IOlong), (IOulong4,IOulong), 
+  (IOfloat4,IOfloat), (IOdouble4,IOdouble), 
+  
+  (IOchar8,IOchar), (IOuchar8,IOuchar), (IOshort8,IOshort), 
+  (IOushort8,IOushort), (IOint8,IOint), (IOuint8,IOuint), (IOlong8,IOlong), 
+  (IOulong8,IOulong), (IOfloat8,IOfloat), (IOdouble8,IOdouble), 
+  
+  (IOchar16,IOchar), (IOuchar16,IOuchar), (IOshort16,IOshort), 
+  (IOushort16,IOushort), (IOint16,IOint), (IOuint16,IOuint), (IOlong16,IOlong), 
+  (IOulong16,IOulong), (IOfloat16,IOfloat), (IOdouble16,IOdouble)]
 
 -- | get the equivalent scalar Data Type of a OpenCL Data Type. With integral
 -- types always return the unsigned one. Example: int16 base type is uint.
@@ -82,19 +88,27 @@ dataTypeNames :: [(IOPointDataType,String)]
 dataTypeNames = [
   (IOchar, "char"), (IOuchar, "uchar"), (IOshort, "short"),
   (IOushort, "ushort"), (IOint, "int"), (IOuint, "uint"), (IOlong, "long"),
-  (IOulong, "ulong"), (IOfloat, "float"), (IOchar2, "char2"), 
-  (IOuchar2, "uchar2"), (IOshort2, "short2"), (IOushort2, "ushort2"),
-  (IOint2, "int2"), (IOuint2, "uint2"), (IOlong2, "long2"), 
-  (IOulong2, "ulong2"), (IOfloat2, "float2"), (IOchar4, "char4"),
-  (IOuchar4, "uchar4"), (IOshort4, "short4"), (IOushort4, "ushort4"),
-  (IOint4, "int4"), (IOuint4, "uint4"), (IOlong4, "long4"), 
-  (IOulong4, "ulong4"), (IOfloat4, "float4"), (IOchar8, "char8"),
-  (IOuchar8, "uchar8"), (IOshort8, "short8"), (IOushort8, "ushort8"),
-  (IOint8, "int8"), (IOuint8, "uint8"), (IOlong8, "long8"), 
-  (IOulong8, "ulong8"), (IOfloat8, "float8"), (IOchar16, "char16"),
-  (IOuchar16, "uchar16"), (IOshort16, "short16"), (IOushort16, "ushort16"),
-  (IOint16, "int16"), (IOuint16, "uint16"), (IOlong16, "long16"),
-  (IOulong16, "ulong16"), (IOfloat16, "float16")]
+  (IOulong, "ulong"), (IOfloat, "float"), (IOdouble, "double"), 
+  
+  (IOchar2, "char2"), (IOuchar2, "uchar2"), (IOshort2, "short2"), 
+  (IOushort2, "ushort2"), (IOint2, "int2"), (IOuint2, "uint2"), 
+  (IOlong2, "long2"), (IOulong2, "ulong2"), (IOfloat2, "float2"), 
+  (IOdouble2, "double2"), 
+  
+  (IOchar4, "char4"), (IOuchar4, "uchar4"), (IOshort4, "short4"), 
+  (IOushort4, "ushort4"), (IOint4, "int4"), (IOuint4, "uint4"), 
+  (IOlong4, "long4"), (IOulong4, "ulong4"), (IOfloat4, "float4"), 
+  (IOdouble4, "double4"), 
+  
+  (IOchar8, "char8"), (IOuchar8, "uchar8"), (IOshort8, "short8"), 
+  (IOushort8, "ushort8"), (IOint8, "int8"), (IOuint8, "uint8"), 
+  (IOlong8, "long8"), (IOulong8, "ulong8"), (IOfloat8, "float8"), 
+  (IOdouble8, "double8"), 
+  
+  (IOchar16, "char16"), (IOuchar16, "uchar16"), (IOshort16, "short16"), 
+  (IOushort16, "ushort16"), (IOint16, "int16"), (IOuint16, "uint16"), 
+  (IOlong16, "long16"), (IOulong16, "ulong16"), (IOfloat16, "float16"), 
+  (IOdouble16, "double16")]
 
 dataTypeShowTable :: M.Map IOPointDataType String
 dataTypeShowTable = M.fromList $ dataTypeNames
@@ -109,14 +123,20 @@ openclTypeNames = map snd dataTypeNames
 dataTypeSizes :: [(IOPointDataType,Int)]
 dataTypeSizes = [
   (IOchar,1), (IOuchar,1), (IOshort,2), (IOushort,2), (IOint,4), (IOuint,4), 
-  (IOlong,8), (IOulong,8), (IOfloat,4), (IOchar2,2), (IOuchar2,2), (IOshort2,4),
-  (IOushort2,4), (IOint2,8), (IOuint2,8), (IOlong2,16), (IOulong2,16), 
-  (IOfloat2,8), (IOchar4,4), (IOuchar4,4), (IOshort4,8), (IOushort4,8), 
-  (IOint4,16), (IOuint4,16), (IOlong4,32), (IOulong4,32), (IOfloat4,16), 
+  (IOlong,8), (IOulong,8), (IOfloat,4), (IOdouble,8), 
+  
+  (IOchar2,2), (IOuchar2,2), (IOshort2,4), (IOushort2,4), (IOint2,8), 
+  (IOuint2,8), (IOlong2,16), (IOulong2,16), (IOfloat2,8), (IOdouble2,16),
+  
+  (IOchar4,4), (IOuchar4,4), (IOshort4,8), (IOushort4,8), (IOint4,16), 
+  (IOuint4,16), (IOlong4,32), (IOulong4,32), (IOfloat4,16), (IOdouble4,32),
+  
   (IOchar8,8), (IOuchar8,8), (IOshort8,16), (IOushort8,16), (IOint8,32), 
-  (IOuint8,32), (IOlong8,64), (IOulong8,64), (IOfloat8,32), (IOchar16,16), 
-  (IOuchar16,16), (IOshort16,32), (IOushort16,32), (IOint16,64), (IOuint16,64), 
-  (IOlong16,128), (IOulong16,128), (IOfloat16,64)]
+  (IOuint8,32), (IOlong8,64), (IOulong8,64), (IOfloat8,32), (IOdouble8,64),
+  
+  (IOchar16,16), (IOuchar16,16), (IOshort16,32), (IOushort16,32), 
+  (IOint16,64), (IOuint16,64), (IOlong16,128), (IOulong16,128), 
+  (IOfloat16,64), (IOdouble16,128)]
 
 -- | get the size in bytes of a OpenCL Data Type.
 dataTypeSize :: IOPointDataType -> Int
@@ -125,14 +145,19 @@ dataTypeSize = maybe (error "no datatype size") id . flip lookup dataTypeSizes
 dataTypeVectorSizes :: [(IOPointDataType,Int)]
 dataTypeVectorSizes = [
   (IOchar,1), (IOuchar,1), (IOshort,1), (IOushort,1), (IOint,1), (IOuint,1), 
-  (IOlong,1), (IOulong,1), (IOfloat,1), (IOchar2,2), (IOuchar2,2), (IOshort2,2),
-  (IOushort2,2), (IOint2,2), (IOuint2,2), (IOlong2,2), (IOulong2,2), 
-  (IOfloat2,2), (IOchar4,4), (IOuchar4,4), (IOshort4,4), (IOushort4,4), 
-  (IOint4,4), (IOuint4,4), (IOlong4,4), (IOulong4,4), (IOfloat4,4), 
+  (IOlong,1), (IOulong,1), (IOfloat,1), (IOdouble,1), 
+  
+  (IOchar2,2), (IOuchar2,2), (IOshort2,2), (IOushort2,2), (IOint2,2), 
+  (IOuint2,2), (IOlong2,2), (IOulong2,2), (IOfloat2,2), (IOdouble2,2), 
+  
+  (IOchar4,4), (IOuchar4,4), (IOshort4,4), (IOushort4,4), (IOint4,4), 
+  (IOuint4,4), (IOlong4,4), (IOulong4,4), (IOfloat4,4), (IOdouble4,4), 
+  
   (IOchar8,8), (IOuchar8,8), (IOshort8,8), (IOushort8,8), (IOint8,8), 
-  (IOuint8,8), (IOlong8,8), (IOulong8,8), (IOfloat8,8), (IOchar16,16), 
-  (IOuchar16,16), (IOshort16,16), (IOushort16,16), (IOint16,16), (IOuint16,16), 
-  (IOlong16,16), (IOulong16,16), (IOfloat16,16)]
+  (IOuint8,8), (IOlong8,8), (IOulong8,8), (IOfloat8,8), (IOdouble8,8), 
+  
+  (IOchar16,16), (IOuchar16,16), (IOshort16,16), (IOushort16,16), (IOint16,16), 
+  (IOuint16,16), (IOlong16,16), (IOulong16,16), (IOfloat16,16), (IOdouble16,16)]
 
 -- | get the number of elements of the vector of a OpenCL Data Type.
 dataTypeVectorSize :: IOPointDataType -> Int
