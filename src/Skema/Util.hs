@@ -27,12 +27,9 @@ import Data.ByteString.Lazy( ByteString, unpack, pack )
 import Data.Bits( (.&.), (.|.), shiftR, shiftL )
 import Data.Char( ord, chr, intToDigit, digitToInt )
 import Data.List( group, sort, nub )
-import qualified Data.ByteString.Char8 as BSC( pack )
-import qualified Data.ByteString.Lazy.Char8 as BSCL( unpack )
+import qualified Data.ByteString.Lazy.Char8 as BSCL( unpack, pack )
 import qualified Data.ByteString.Base64 as B64( encode, decodeLenient )
-import Data.Aeson( FromJSON(..), ToJSON(..), encode, json )
-import qualified Data.Aeson.Types as T
-import Data.Attoparsec (parse, Result(..))
+import Data.Aeson( FromJSON(..), ToJSON(..), encode, decode' )
 
 -- -----------------------------------------------------------------------------
 -- | 'byteStringHex' converta a ByteString to a Hexadecimal representation.
@@ -86,12 +83,7 @@ toJSONString = BSCL.unpack . encode . toJSON
 
 -- | Convert from a JSON `String` to a value.
 fromJSONString :: FromJSON a => String -> Maybe a
-fromJSONString s = case parse json (BSC.pack s) of
-  (Done _ r) -> parseMaybe' r
-  _ -> Nothing
-
-parseMaybe' :: FromJSON b => T.Value -> Maybe b
-parseMaybe' r = T.parseMaybe parseJSON r
+fromJSONString = decode' . BSCL.pack
 
 -- -----------------------------------------------------------------------------
 {-

@@ -37,7 +37,7 @@ module Skema.ProgramFlow
 import Control.Applicative( pure, (<*>) )
 import Control.Arrow( second )
 import Control.Monad( mzero )
-import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:), (.:?) )
+import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:), (.:?), (.!=) )
 import qualified Data.Aeson.Types as Aeson
 import Data.Functor( (<$>) )
 import Data.Maybe( mapMaybe, fromJust, isJust )
@@ -47,17 +47,10 @@ import Data.Digest.Pure.SHA( sha256, bytestringDigest )
 import qualified Data.IntMap as MI( empty, fromList, (!) )
 import qualified Data.Map as M( 
   Map, size, empty, fromList, elems, assocs, lookup, (!) )
-import Data.Text( Text )
 import Skema.Types( 
   IOPointType(..), IOPointDataType(..), dataTypeSize, dataTypeBase )
 import Skema.SIDMap( SID(..), SIDMap, sidMapAssocs )
 import Skema.Util( toJSONString, fromJSONString )
-
-(.:/) :: (FromJSON a) => Aeson.Object -> (Text, a) -> Aeson.Parser a 
-obj .:/ (key, val) = case M.lookup key obj of
-  Nothing -> pure val
-  Just v  -> parseJSON v
-{-# INLINE (.:/) #-}
 
 -- -----------------------------------------------------------------------------
 -- | Node id type.
@@ -131,7 +124,7 @@ instance FromJSON PFKernel where
   parseJSON (Aeson.Object v) = PFKernel <$>
                                v .: "body" <*> 
                                v .: "io" <*>
-                               v .:/ ("const", M.empty) <*>
+                              (v .:? "const" .!= M.empty) <*>
                                v .:? "workitems"
   parseJSON _ = mzero  
 
