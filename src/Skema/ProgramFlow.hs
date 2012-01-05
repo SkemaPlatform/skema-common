@@ -103,6 +103,7 @@ instance FromJSON PFConstBuffer where
 -- | Program Flow Kernel.
 data PFKernel = PFKernel
     { pfkBody :: !String -- ^ OpenCL body of the kernel.
+    , pfkExtra :: !String -- ^ OpenCL extra code.
     , pfkIOPoints :: M.Map String PFIOPoint 
       -- ^ list of names I/O points or parameters
     , pfkConstBuffers :: M.Map String PFConstBuffer
@@ -111,18 +112,21 @@ data PFKernel = PFKernel
     } deriving( Show, Eq )
 
 instance ToJSON PFKernel where
-  toJSON (PFKernel body ps cs wi) 
+  toJSON (PFKernel body extra ps cs wi) 
     | (isJust wi) = object [ "body" .= body, 
+                             "extra" .= extra,
                              "io" .= ps, 
                              "const" .= cs, 
                              "workitems" .= wi ]
     | otherwise = object [ "body" .= body, 
+                           "extra" .= extra,
                            "io" .= ps,
                            "const" .= cs ]
                               
 instance FromJSON PFKernel where
   parseJSON (Aeson.Object v) = PFKernel <$>
                                v .: "body" <*> 
+                               v .: "extra" <*>
                                v .: "io" <*>
                               (v .:? "const" .!= M.empty) <*>
                                v .:? "workitems"
@@ -198,7 +202,7 @@ emptyProgramFlow = ProgramFlow M.empty MI.empty []
 
 -- | simple example Kernel.
 exampleKernel :: PFKernel
-exampleKernel = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];" 
+exampleKernel = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];" ""
               (M.fromList [
                   ("i1",PFIOPoint IOfloat4 InputPoint),
                   ("o1",PFIOPoint IOfloat4 OutputPoint)])
@@ -207,7 +211,7 @@ exampleKernel = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];"
 
 -- | simple example Kernel with const buffer.
 exampleKernelWC :: PFKernel
-exampleKernelWC = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];" 
+exampleKernelWC = PFKernel "int id = get_global_id(0); o1[id] = 2*i1[id];" ""
               (M.fromList [
                   ("i1",PFIOPoint IOfloat4 InputPoint),
                   ("o1",PFIOPoint IOfloat4 OutputPoint)])
@@ -220,7 +224,7 @@ exampleProgramFlow :: ProgramFlow
 exampleProgramFlow = emptyProgramFlow {
   pfKernels= M.fromList [
      ("kuno", exampleKernel),
-     ("kdos", PFKernel "" 
+     ("kdos", PFKernel "" ""
               (M.fromList [
                   ("i1",PFIOPoint IOfloat4 InputPoint),
                   ("i2",PFIOPoint IOchar InputPoint),
@@ -429,6 +433,7 @@ checkCL_KHR_FP64 krn = any (==IOdouble) $ iosimpletypes ++ constsimpletypes
 openclKernelSource :: String -> PFKernel -> String
 openclKernelSource name krn = concat 
                               [ fp64Pragma
+                              , pfkExtra krn, "\n"
                               , "__kernel void ", name
                               , "( ", parameters, " ){\n"
                               , pfkBody krn, "\n}"]
