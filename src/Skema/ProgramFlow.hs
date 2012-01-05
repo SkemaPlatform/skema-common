@@ -126,9 +126,9 @@ instance ToJSON PFKernel where
 instance FromJSON PFKernel where
   parseJSON (Aeson.Object v) = PFKernel <$>
                                v .: "body" <*> 
-                               v .: "extra" <*>
+                               (v .:? "extra" .!= "") <*>
                                v .: "io" <*>
-                              (v .:? "const" .!= M.empty) <*>
+                               (v .:? "const" .!= M.empty) <*>
                                v .:? "workitems"
   parseJSON _ = mzero  
 
