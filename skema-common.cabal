@@ -24,6 +24,7 @@ Library
     Skema.Util
     Skema.Math
     Skema.JSON
+    Skema.GraphvizDot
     Skema.Types
     Skema.DataValue
     Skema.ProgramFlow
