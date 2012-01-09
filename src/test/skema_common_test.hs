@@ -27,10 +27,10 @@ import Text.Printf( printf )
 import Control.Monad( replicateM, liftM )
 import Data.Char( isHexDigit, isPrint )
 import Data.List( intersect, nub )
-import qualified Data.ByteString.Lazy.Char8 as LC
-  ( ByteString, fromChunks, length )
+import qualified Data.ByteString.Lazy.Char8 as LC( 
+  ByteString, fromChunks, length )
 import qualified Data.ByteString.Char8 as BC( ByteString, null, pack )
-import qualified Data.Map as M( Map, fromList, size, keys )
+import qualified Data.Map as M( Map, fromList, size, keys, empty )
 import qualified Data.IntMap as IM( IntMap, fromList )
 import System.Exit( exitSuccess, exitFailure )
 import Skema.Math( deg2rad, rad2deg )
@@ -90,6 +90,7 @@ instance Arbitrary PFIOPoint where
 instance Arbitrary PFKernel where
   arbitrary = do
     body <- printableString
+    extra <- printableString
     nins <- suchThat arbitrary (>0)
     nouts <- suchThat arbitrary (>0)
     ips <- replicateM nins $ do
@@ -100,7 +101,7 @@ instance Arbitrary PFKernel where
       pname <- printableString
       d <- arbitrary
       return $ (pname,PFIOPoint d OutputPoint)
-    return $ PFKernel body (M.fromList (ips ++ ops)) Nothing
+    return $ PFKernel body extra (M.fromList (ips ++ ops)) M.empty Nothing
   
 instance Arbitrary PFNode where
   arbitrary = printableString >>= return . PFNode
