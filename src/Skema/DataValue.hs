@@ -323,6 +323,7 @@ convertNValues b t n = concatMap (\x-> convertToDataValues x t)
                        $ take n $ iterate (B.drop (dataTypeSize t)) b
 
 -- -----------------------------------------------------------------------------
+-- | Convert `DataValue` to Integral type.
 dvToIntegral :: Integral a => DataValue -> a
 dvToIntegral (DVchar v) = fromIntegral v
 dvToIntegral (DVuchar v) = fromIntegral v
@@ -335,6 +336,7 @@ dvToIntegral (DVulong v) = fromIntegral v
 dvToIntegral (DVfloat v) = round v
 dvToIntegral (DVdouble v) = round v
 
+-- | Conversionto `Float`.
 dvToFloat :: DataValue -> Float
 dvToFloat (DVchar v) = fromIntegral v
 dvToFloat (DVuchar v) = fromIntegral v
@@ -347,6 +349,7 @@ dvToFloat (DVulong v) = fromIntegral v
 dvToFloat (DVfloat v) = v
 dvToFloat (DVdouble v) = double2Float v
 
+-- | Conversionto `Double`.
 dvToDouble :: DataValue -> Double
 dvToDouble (DVchar v) = fromIntegral v
 dvToDouble (DVuchar v) = fromIntegral v

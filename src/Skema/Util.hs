@@ -16,8 +16,14 @@
 -- -----------------------------------------------------------------------------
 -- | General functions for Skema programs
 module Skema.Util( 
+  -- * ByteString Functions
   byteStringHex, hexByteString, b64ByteString, byteStringB64, prettyBytes, 
-  duplicates, isAcyclicGraph, topologicalSorting, toJSONString, fromJSONString ) 
+  -- * JSON functions
+  toJSONString, fromJSONString,
+  -- * Graph functions
+  isAcyclicGraph, topologicalSorting,
+  -- * Other
+  duplicates  ) 
        where
 
 -- -----------------------------------------------------------------------------
@@ -51,9 +57,11 @@ hexByteString = pack . map (fromInteger.toInteger).groupBinary . map digitToInt
     binaryAdd x y = ((x .&. 0xf) `shiftL` 4) .|. (y .&. 0xf)
 
 -- -----------------------------------------------------------------------------
+-- | encode bytestring to base64 format.
 byteStringB64 :: BS.ByteString -> String
 byteStringB64 = map (chr.fromIntegral) . BS.unpack . B64.encode
   
+-- | decode base64 format to bytestring.
 b64ByteString :: String -> BS.ByteString
 b64ByteString = B64.decodeLenient . BS.pack . map (fromIntegral.ord)
 

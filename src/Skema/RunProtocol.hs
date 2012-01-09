@@ -52,9 +52,11 @@ import Skema.Concurrent(
 import Skema.Util( fromJSONString, toJSONString, b64ByteString, byteStringB64 )
 
 -- -----------------------------------------------------------------------------
+-- | Location of service.
 data ServerPort = ServerPort
-                  { spHostName :: ! String,
-                    spPort :: ! Int }
+                  { spHostName :: ! String -- ^ Service Host name.
+                  , spPort :: ! Int -- ^ Service Port. 
+                  }
   
 -- -----------------------------------------------------------------------------
 webhost :: ServerPort -> String
@@ -82,6 +84,7 @@ data RPError = RPConnError | RPServerError | RPClientError
              deriving( Show )
 
 -- -----------------------------------------------------------------------------
+-- | Skema Program ID.
 data RPSkemaProgramID = RPSkemaProgramID 
                         { skemaProgramID :: ! BSCL.ByteString }
                       deriving( Show )
@@ -95,6 +98,7 @@ instance FromJSON RPSkemaProgramID where
   parseJSON _          = mzero  
   
 -- -----------------------------------------------------------------------------
+-- | List of Skema Program IDs.
 data RPProgramList = RPProgramList 
                      { programList :: [BSCL.ByteString] }
                      deriving( Show )
@@ -108,9 +112,13 @@ instance FromJSON RPProgramList where
   parseJSON _          = mzero  
   
 -- -----------------------------------------------------------------------------
+-- | Skema Program Run Request.
 data RPProgramRun = RPProgramRun
-                    { programID :: ! BSCL.ByteString
-                    , programConstData :: [(PFNodePoint, BS.ByteString)] }
+                    { programID :: ! BSCL.ByteString 
+                      -- ^ ID of Skema Program to Run.
+                    , programConstData :: [(PFNodePoint, BS.ByteString)] 
+                      -- ^ Const Data of the Run Instance.
+                    }
                   deriving( Show )
   
 encodeB64 :: [(PFNodePoint, BS.ByteString)] -> [(PFNodePoint, String)]
@@ -142,6 +150,7 @@ instance FromJSON PortNumber where
     parseJSON = parseIntegral
     {-# INLINE parseJSON #-}
 
+-- | Skema Run Instance Communication Ports.
 data RPRunIO = RPRunIO
                { inPorts :: [(PFNodePoint, PortNumber)]
                , outPorts :: [(PFNodePoint, PortNumber)] }
@@ -157,6 +166,8 @@ instance FromJSON RPRunIO where
   parseJSON _          = mzero  
 
 -- -----------------------------------------------------------------------------
+-- | Send Skema Program to Skema Server. Returns the `RPSkemaProgramID` for use
+-- that program.
 sendSkemaProgram :: ServerPort -> ProgramFlow 
                     -> IO (Either RPError RPSkemaProgramID)
 sendSkemaProgram server pf = do
@@ -178,6 +189,8 @@ sendSkemaProgram server pf = do
     )
 
 -- -----------------------------------------------------------------------------
+-- | Create a Run Instance of a Program. Returns the ports opened for
+-- communication of data.
 createSkemaRun :: ServerPort -> RPProgramRun -> IO (Either RPError RPRunIO)
 createSkemaRun server prun = do
   catch 
@@ -272,6 +285,8 @@ getBufferOuputs children server ports rets = do
     getAsyncBuffer children (newServerPort server p) ret
     
 -- -----------------------------------------------------------------------------
+-- | Run a Skema Program with a list of input Buffers. Returns the output
+-- Buffers.
 runBuffers :: [BS.ByteString] -> ServerPort -> ProgramFlow 
               -> IO (Maybe [BS.ByteString])
 runBuffers xs server pf = do
@@ -301,6 +316,8 @@ runBuffers xs server pf = do
             else return Nothing
 
 -- -----------------------------------------------------------------------------
+-- | Run a Skema Program with a list of input Buffers and a list of const
+-- buffers. Returns the output Buffers.
 runBuffersCB :: [BS.ByteString] -> [(PFNodePoint, BS.ByteString)] -> ServerPort 
                 -> ProgramFlow -> IO (Maybe [BS.ByteString])
 runBuffersCB xs cbuffs server pf = do
