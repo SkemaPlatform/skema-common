@@ -18,7 +18,7 @@
 module Skema.DataValue( 
   DataValue(..), updateDataValue, extractValue, valueToByteString, 
   valuesToByteString, convertToDataValues, convertNValues, dvToIntegral, 
-  dvToDouble, dvToFloat )
+  dvToFloat )
        where
 
 -- -----------------------------------------------------------------------------
@@ -336,7 +336,7 @@ dvToIntegral (DVulong v) = fromIntegral v
 dvToIntegral (DVfloat v) = round v
 dvToIntegral (DVdouble v) = round v
 
--- | Conversionto `Float`.
+-- | Conversion to `Float`.
 dvToFloat :: DataValue -> Float
 dvToFloat (DVchar v) = fromIntegral v
 dvToFloat (DVuchar v) = fromIntegral v
@@ -348,18 +348,5 @@ dvToFloat (DVlong v) =  fromIntegral v
 dvToFloat (DVulong v) = fromIntegral v
 dvToFloat (DVfloat v) = v
 dvToFloat (DVdouble v) = double2Float v
-
--- | Conversionto `Double`.
-dvToDouble :: DataValue -> Double
-dvToDouble (DVchar v) = fromIntegral v
-dvToDouble (DVuchar v) = fromIntegral v
-dvToDouble (DVshort v) = fromIntegral v
-dvToDouble (DVushort v) = fromIntegral v
-dvToDouble (DVint v) =  fromIntegral v
-dvToDouble (DVuint v) =  fromIntegral v
-dvToDouble (DVlong v) =  fromIntegral v
-dvToDouble (DVulong v) = fromIntegral v
-dvToDouble (DVfloat v) = float2Double v
-dvToDouble (DVdouble v) = v
 
 -- -----------------------------------------------------------------------------
