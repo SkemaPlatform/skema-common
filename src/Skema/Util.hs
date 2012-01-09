@@ -18,7 +18,7 @@
 module Skema.Util( 
   -- * ByteString Functions
   byteStringHex, hexByteString, b64ByteString, byteStringB64, prettyBytes, 
-  -- * JSON functions
+  -- * Conversion functions
   toJSONString, fromJSONString,
   -- * Graph functions
   isAcyclicGraph, topologicalSorting,
