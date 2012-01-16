@@ -18,42 +18,56 @@ along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 module Skema.GraphvizDot( toGraphvizDot ) where
 
 -- -----------------------------------------------------------------------------
+import Control.Arrow( second, (&&&) )
 import Data.Maybe( catMaybes )
-import qualified Data.Map as M( 
-  Map, size, empty, fromList, elems, assocs, lookup, (!) )
-import Skema.ProgramFlow( ProgramFlow(..), PFKernel(..), PFNode(..) )
-import Skema.SIDMap( sidMapAssocs )
+import qualified Data.Map as M( lookup )
+import Skema.ProgramFlow( 
+  ProgramFlow(..), PFKernel(..), PFNode(..), PFArrow(..), PFIOPoint(..), 
+  IOPoint(..), kernelInputPoints, kernelOutputPoints, unasignedInputPoints, 
+  unasignedOutputPoints )
+import Skema.SIDMap( toInt, sidMapAssocs )
 
 -- -----------------------------------------------------------------------------
 toGraphvizDot :: ProgramFlow -> String
 toGraphvizDot pf = "digraph { rankdir=\"LR\";\n"
-                   ++ concat nodes
+                   ++ (concat . fmap toGraphvizNode $ nodes)
+                   ++ (concat . fmap toGraphvizArrow $ arrows)
+                   ++ (concat . fmap toGraphvizStart $ startpoints)
+                   ++ (concat . fmap toGraphvizEnd $ endpoints)
                    ++ "}\n"
   where
-    nodes = fmap toGraphvizNode 
-            . catMaybes . fmap (kernelLookup pf)
+    nodes = catMaybes . fmap (kernelLookup pf)
             . sidMapAssocs $ pfNodes pf
+    arrows =  pfArrows pf
+    startpoints = zip [0..] . fmap (toInt . iopNode &&& iopPoint) 
+                  $ unasignedInputPoints pf
+    endpoints = zip [0..] . fmap (toInt . iopNode &&& iopPoint)
+                $ unasignedOutputPoints pf
 
 -- -----------------------------------------------------------------------------
 toGraphvizNode :: (Int,String,PFKernel) -> String
-toGraphvizNode (n,s,_) = show n 
-                         ++ "[shape=plaintext, label=<<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\"><TR><TD bgcolor=\"grey30\"><font color=\"white\" >"
-                         ++ s
-                         ++ "</font></TD><TD bgcolor=\"grey30\"></TD></TR>"
-                         ++ "</TABLE>>];\n" 
-{-
-<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
-  <TR><TD bgcolor="grey30"><font color="white" >fan</font></TD><TD bgcolor="grey30"></TD></TR>
-  <TR><TD></TD><TD PORT="fan_y" align="left">y [float]</TD></TR>
-  <TR><TD></TD><TD PORT="fan_x" align="left">x [float]</TD></TR>
-  <TR><TD></TD></TR><TR><TD></TD></TR>
-  <TR><TD></TD></TR><TR><TD></TD></TR>
-  <TR><TD></TD></TR><TR><TD></TD></TR>
-  <TR><TD></TD></TR>
-  <TR><TD PORT="fan_z">z [float]</TD></TR>
-</TABLE>>
--}
-
+toGraphvizNode (n,s,kern) = 
+  show n ++ "[shape=plaintext, label=<"
+  ++ "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\"><TR>"
+  ++ "<TD bgcolor=\"grey30\">"
+  ++ "<font color=\"white\" >" ++ s ++ "</font></TD>"
+  ++ "<TD bgcolor=\"grey30\"></TD></TR>"
+  ++ (concat opoints)
+  ++ "<TR><TD></TD></TR><TR><TD></TD></TR>"
+  ++ "<TR><TD></TD></TR><TR><TD></TD></TR>"
+  ++ "<TR><TD></TD></TR><TR><TD></TD></TR>"
+  ++ (concat ipoints)
+  ++ "</TABLE>>];\n" 
+    where
+      ipoints = fmap (ipRow . second pfIOPDataType) $ kernelInputPoints kern
+      ipRow (is,it) = 
+        "<TR><TD PORT=\"" ++ is ++ "\" align=\"right\">" 
+        ++ is ++ " [" ++ show it ++ "]</TD></TR>"
+      opoints = fmap (opRow . second pfIOPDataType) $ kernelOutputPoints kern
+      opRow (os,ot) = 
+        "<TR><TD></TD><TD PORT=\"" ++ os ++ "\" align=\"left\">" 
+        ++ os ++ " [" ++ show ot ++ "]</TD></TR>"
+        
 kernelLookup :: ProgramFlow 
                 -> (a,PFNode) -- ^ Instance of the Kernel
                 -> Maybe (a,String,PFKernel)
@@ -61,5 +75,32 @@ kernelLookup pf (k,n) = maybe Nothing (Just.(\a-> (k,key,a))) (M.lookup key kern
   where 
     key = pfnIndex n
     kernels = (pfKernels pf)
+
+-- -----------------------------------------------------------------------------
+toGraphvizArrow :: PFArrow -> String
+toGraphvizArrow (PFArrow (aon,aos) (ain,ais)) = 
+  (show . toInt $ aon)
+  ++ ":" ++ aos ++ " -> "  
+  ++ (show . toInt $ ain)
+  ++ ":" ++ ais
+  ++ "[dir=both, arrowhead=\"dot\", arrowtail=\"odot\"];\n"
+
+-- -----------------------------------------------------------------------------
+toGraphvizStart :: (Int, (Int, String)) -> String
+toGraphvizStart (idx,(inode,is)) = 
+  nodeName ++ " [shape=plaintext, label=\"\"]; "
+  ++ nodeName ++ " -> " ++ show inode ++ ":" ++ is 
+  ++ " [arrowhead=\"dot\", style=\"dashed\"];\n"
+    where
+      nodeName = "start" ++ show idx
+      
+-- -----------------------------------------------------------------------------
+toGraphvizEnd :: (Int, (Int, String)) -> String
+toGraphvizEnd (idx,(inode,is)) = 
+  nodeName ++ " [shape=plaintext, label=\"\"]; "
+  ++ show inode ++ ":" ++ is ++ " -> " ++ nodeName 
+  ++ " [dir=back, arrowtail=\"odot\", style=\"dashed\"];\n"
+    where
+      nodeName = "end" ++ show idx
 
 -- -----------------------------------------------------------------------------
