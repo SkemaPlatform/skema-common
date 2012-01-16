@@ -1,0 +1,12 @@
+INSTALL:
+
+cabal clean
+cabal install --enable-documentation --user
+
+
+TEST:
+
+cabal clean
+cabal configure --enable-tests
+cabal build
+cabal test

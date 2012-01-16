@@ -16,21 +16,26 @@
 -- -----------------------------------------------------------------------------
 -- | General functions for Skema programs
 module Skema.Util( 
-  byteStringHex, hexByteString, prettyBytes, duplicates, isAcyclicGraph, 
-  topologicalSorting, toJSONString, fromJSONString ) 
+  -- * ByteString Functions
+  byteStringHex, hexByteString, b64ByteString, byteStringB64, prettyBytes, 
+  -- * Conversion functions
+  toJSONString, fromJSONString,
+  -- * Graph functions
+  isAcyclicGraph, topologicalSorting,
+  -- * Other
+  duplicates  ) 
        where
 
 -- -----------------------------------------------------------------------------
 import Control.Arrow( (&&&) )
+import qualified Data.ByteString as BS( ByteString, unpack, pack )
 import Data.ByteString.Lazy( ByteString, unpack, pack )
 import Data.Bits( (.&.), (.|.), shiftR, shiftL )
-import Data.Char( intToDigit, digitToInt )
+import Data.Char( ord, chr, intToDigit, digitToInt )
 import Data.List( group, sort, nub )
-import qualified Data.ByteString.Char8 as BSC( pack )
-import qualified Data.ByteString.Lazy.Char8 as BSCL( unpack )
-import Data.Aeson( FromJSON(..), ToJSON(..), encode, json )
-import qualified Data.Aeson.Types as T
-import Data.Attoparsec (parse, Result(..))
+import qualified Data.ByteString.Lazy.Char8 as BSCL( unpack, pack )
+import qualified Data.ByteString.Base64 as B64( encode, decodeLenient )
+import Data.Aeson( FromJSON(..), ToJSON(..), encode, decode' )
 
 -- -----------------------------------------------------------------------------
 -- | 'byteStringHex' converta a ByteString to a Hexadecimal representation.
@@ -52,9 +57,19 @@ hexByteString = pack . map (fromInteger.toInteger).groupBinary . map digitToInt
     binaryAdd x y = ((x .&. 0xf) `shiftL` 4) .|. (y .&. 0xf)
 
 -- -----------------------------------------------------------------------------
+-- | encode bytestring to base64 format.
+byteStringB64 :: BS.ByteString -> String
+byteStringB64 = map (chr.fromIntegral) . BS.unpack . B64.encode
+  
+-- | decode base64 format to bytestring.
+b64ByteString :: String -> BS.ByteString
+b64ByteString = B64.decodeLenient . BS.pack . map (fromIntegral.ord)
+
+-- -----------------------------------------------------------------------------
 prettySymbols :: [String]
 prettySymbols = ["B", "KiB","MiB","GiB","TiB","PiB","EiB"]
 
+-- | String representation of a binary amount.
 prettyBytes :: Integral a => a -> String
 prettyBytes = prettyBytes' prettySymbols . fromIntegral
 
@@ -65,20 +80,18 @@ prettyBytes' (s:ss) n
   | n < 1024 = concat [show n, " ", s]
   | otherwise = prettyBytes' ss (n / 1024.0)
 
+-- | Fast remove of duplicates from a list. Fast than `nub`.
 duplicates :: Ord a => [a] -> [a]
 duplicates = map fst . filter ((>1) . snd) . map (head&&&length) . group . sort
 
 -- -----------------------------------------------------------------------------
+-- | Convert from a value to JSON `String`.
 toJSONString :: ToJSON a => a -> String
 toJSONString = BSCL.unpack . encode . toJSON
 
+-- | Convert from a JSON `String` to a value.
 fromJSONString :: FromJSON a => String -> Maybe a
-fromJSONString s = case parse json (BSC.pack s) of
-  (Done _ r) -> parseMaybe' r
-  _ -> Nothing
-
-parseMaybe' :: FromJSON b => T.Value -> Maybe b
-parseMaybe' r = T.parseMaybe parseJSON r
+fromJSONString = decode' . BSCL.pack
 
 -- -----------------------------------------------------------------------------
 {-
@@ -86,13 +99,19 @@ http://stackoverflow.com/questions/4168/graph-serialization/4577#4577
 http://en.wikipedia.org/wiki/Topological_sorting
 -}
 
-isAcyclicGraph :: Eq a => [(a,a)] -> Bool
+-- | Check if a directed graph is acyclic.
+isAcyclicGraph :: Eq a 
+                  => [(a,a)] -- ^ List of edges of the graph.
+                  -> Bool
 isAcyclicGraph edges = null graph
   where
     es = nub edges
     (graph,_) = topologicalSorting' (nodesWithoutIncoming es) es []
 
-topologicalSorting :: Eq a => [(a,a)] -> [a]
+-- | Calculate the topological sort of a directed graph.
+topologicalSorting :: Eq a 
+                      => [(a,a)] -- ^ List of edges of the graph.
+                      -> [a]
 topologicalSorting edges = reverse order
   where
     es = nub edges

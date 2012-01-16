@@ -1,68 +1,65 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% This file is part of Skema.
+-- -----------------------------------------------------------------------------
+-- This file is part of Skema.
 
-% Skema is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-%  (at your option) any later version.
+-- Skema is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+--  (at your option) any later version.
 
-% Skema is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
+-- Skema is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
 
-% You should have received a copy of the GNU General Public License
-% along with Skema.  If not, see <http://www.gnu.org/licenses/>.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
+-- You should have received a copy of the GNU General Public License
+-- along with Skema.  If not, see <http://www.gnu.org/licenses/>.
+-- -----------------------------------------------------------------------------
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main( main ) where
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
-import Test.QuickCheck
-  ( Gen, Testable, Arbitrary(..), Args(..), stdArgs, quickCheckWith, elements, 
-    suchThat, listOf )
-import Test.QuickCheck.Property( Result, succeeded, failed )
+-- -----------------------------------------------------------------------------
+import Test.QuickCheck( 
+  Gen, Testable, Arbitrary(..), quickCheckWithResult, elements, suchThat, 
+  listOf )
+import Test.QuickCheck.Test( Args(..), Result, stdArgs, isSuccess )
+import qualified Test.QuickCheck.Property as P( Result, succeeded, failed )
 import Text.Printf( printf )
-import qualified Text.JSON as JSON( encode, decode, Result(..) )
 import Control.Monad( replicateM, liftM )
 import Data.Char( isHexDigit, isPrint )
-import Data.List( intersect )
-import qualified Data.ByteString.Lazy.Char8 as LC
-  ( ByteString, fromChunks, length )
+import Data.List( intersect, nub )
+import qualified Data.ByteString.Lazy.Char8 as LC( 
+  ByteString, fromChunks, length )
 import qualified Data.ByteString.Char8 as BC( ByteString, null, pack )
-import qualified Data.Map as M( Map, fromList, size, keys )
+import qualified Data.Map as M( Map, fromList, size, keys, empty )
 import qualified Data.IntMap as IM( IntMap, fromList )
+import System.Exit( exitSuccess, exitFailure )
 import Skema.Math( deg2rad, rad2deg )
-import Skema.Types( IOPointType(..), IOPointDataType(..) )
-import Skema.Util( hexByteString, byteStringHex )
+import Skema.Types( 
+  IOPointType(..), IOPointDataType(..), dataTypeVectorSize, dataTypeSize )
+import Skema.Util( 
+  hexByteString, byteStringHex, duplicates, topologicalSorting, fromJSONString, 
+  toJSONString )
 import Skema.JSON( prettyJSON )
-import Skema.ProgramFlow
-  ( PFNodeID, PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), 
-    ProgramFlow(..), generateJSONString, exampleProgramFlow, 
-    unasignedOutputPoints, unasignedInputPoints, decodeJSONString )
+import Skema.ProgramFlow( 
+  PFNodeID, PFIOPoint(..), PFNode(..), PFKernel(..), PFArrow(..), 
+  ProgramFlow(..), generateJSONString, exampleProgramFlow, unasignedOutputPoints, 
+  unasignedInputPoints, decodeJSONString )
 import Skema.Network()
 import Skema.Concurrent()
 import Skema.RunProtocol()
 import Skema.DataValue()
 import Skema.SIDMap( SID(..) )
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
+-- -----------------------------------------------------------------------------
 main :: IO ()
-main = mapM_ (\(s,a) -> printf "%-25s: " s >> a) tests
-\end{code}
+main = do
+  results <- mapM (\(s,a) -> printf "%-25s: " s >> a) tests
+  if (all isSuccess results) then exitSuccess else exitFailure
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
+-- -----------------------------------------------------------------------------
 printableString :: Gen String
 printableString = listOf (suchThat arbitrary isPrint)
-\end{code}
 
-\begin{code}
 instance Arbitrary PFNodeID where
   arbitrary = fromInt `fmap` arbitrary
 
@@ -93,6 +90,7 @@ instance Arbitrary PFIOPoint where
 instance Arbitrary PFKernel where
   arbitrary = do
     body <- printableString
+    extra <- printableString
     nins <- suchThat arbitrary (>0)
     nouts <- suchThat arbitrary (>0)
     ips <- replicateM nins $ do
@@ -103,7 +101,7 @@ instance Arbitrary PFKernel where
       pname <- printableString
       d <- arbitrary
       return $ (pname,PFIOPoint d OutputPoint)
-    return $ PFKernel body (M.fromList (ips ++ ops))
+    return $ PFKernel body extra (M.fromList (ips ++ ops)) M.empty Nothing
   
 instance Arbitrary PFNode where
   arbitrary = printableString >>= return . PFNode
@@ -136,134 +134,116 @@ instance Arbitrary ProgramFlow where
             return (d,n)
           return $ PFArrow aoutput ainput
     return $ ProgramFlow kernels (IM.fromList (zip [1..] nodes)) arrows
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Skema.Math tests
+-- -----------------------------------------------------------------------------
+-- Skema.Math tests
 
-\begin{code}
 prop_rad2deg :: Double -> Bool
 prop_rad2deg a = abs ((rad2deg . deg2rad) a - a) < 0.001
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Skema.Util tests
+-- -----------------------------------------------------------------------------
+-- Skema.Util tests
 
-\begin{code}
 prop_hexByteString :: String -> Bool
 prop_hexByteString xs = lenbs <= (fromIntegral.length) cad
   where
     lenbs = (LC.length . hexByteString) cad 
     cad = filter isHexDigit xs
-\end{code}
 
-\begin{code}
 prop_hexByteString_ident :: LC.ByteString -> Bool
 prop_hexByteString_ident xs = (hexByteString . byteStringHex) xs == xs
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Skema.JSON tests
+prop_duplicates :: [Int] -> Bool
+prop_duplicates xs = length xs >= (length . duplicates) xs
+                   
+prop_topological :: [(Int,Int)] -> Bool
+prop_topological xs = nodes == topo
+  where
+    nodes = nub topo
+    topo = topologicalSorting xs
+  
+-- -----------------------------------------------------------------------------
+-- Skema.JSON tests
 
-\begin{code}
 prop_prettyjson_length :: ProgramFlow -> Bool
 prop_prettyjson_length pf = length st <= (length . prettyJSON) st
-  where st = JSON.encode pf
-\end{code}
+  where st = generateJSONString pf
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Skema.Programflow tests
+-- -----------------------------------------------------------------------------
+-- Skema.Programflow tests
 
-\begin{code}
 prop_jsonProgramFlow :: ProgramFlow -> Bool
 prop_jsonProgramFlow pf = case decodeJSONString cad of
   Left _ -> False
   Right newpf -> newpf == pf
   where
     cad = generateJSONString pf
-\end{code}
 
-\begin{code}
 prop_jsonPrettyProgramFlow :: ProgramFlow -> Bool
 prop_jsonPrettyProgramFlow pf = case decodeJSONString cad of
   Left _ -> False
   Right newpf -> newpf == pf
   where
     cad = prettyJSON $ generateJSONString pf
-\end{code}
 
-\begin{code}
-prop_encodeExample :: Result
+prop_encodeExample :: P.Result
 prop_encodeExample = case gend of
-  JSON.Ok _ -> succeeded
-  _ -> failed
+  Just _ -> P.succeeded
+  _ -> P.failed
   where
-    trans = JSON.decode . JSON.encode
-    gend = (trans exampleProgramFlow) :: (JSON.Result ProgramFlow)
-\end{code}
+    trans = fromJSONString . toJSONString
+    gend = (trans exampleProgramFlow) :: (Maybe ProgramFlow)
 
-\begin{code}
 prop_unasignedpoints :: ProgramFlow -> Bool
 prop_unasignedpoints pf = uai `intersect` uao == []
   where
     uai = unasignedInputPoints pf
     uao = unasignedOutputPoints pf
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Skema.Types tests
+-- -----------------------------------------------------------------------------
+-- Skema.Types tests
 
-\begin{code}
 prop_read_IOPointDataType :: Int -> IOPointDataType -> Bool
 prop_read_IOPointDataType d x = any (==(x,"")) (readsPrec d (showsPrec d x ""))
-\end{code}
 
-\begin{code}
+prop_vector_types :: IOPointDataType -> Bool
+prop_vector_types x = dataTypeVectorSize x <= dataTypeSize x
+  
 prop_json_IOPointDataType :: IOPointDataType -> Bool
-prop_json_IOPointDataType v = (JSON.decode . JSON.encode) v == JSON.Ok v
-\end{code}
+prop_json_IOPointDataType v = (fromJSONString . toJSONString) [v] == Just [v]
 
-\begin{code}
 prop_json_IOPointType :: IOPointType -> Bool
-prop_json_IOPointType v = (JSON.decode . JSON.encode) v == JSON.Ok v
-\end{code}
+prop_json_IOPointType v = (fromJSONString . toJSONString) [v] == Just [v]
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{code}
-longCheck :: Testable prop => prop -> IO ()
-longCheck = quickCheckWith stdArgs { maxSuccess=500 }
-\end{code}
+-- -----------------------------------------------------------------------------
+longCheck :: Testable prop => prop -> IO Result
+longCheck = quickCheckWithResult stdArgs { maxSuccess=500 }
 
-\begin{code}
-oneCheck :: Testable prop => prop -> IO ()
-oneCheck = quickCheckWith stdArgs { maxSuccess=1 }
-\end{code}
+oneCheck :: Testable prop => prop -> IO Result
+oneCheck = quickCheckWithResult stdArgs { maxSuccess=1 }
 
-\begin{code}
-fastCheck :: Testable prop => prop -> IO ()
-fastCheck = quickCheckWith stdArgs { maxSuccess=500, maxSize=10 }
-\end{code}
+fastCheck :: Testable prop => prop -> IO Result
+fastCheck = quickCheckWithResult stdArgs { maxSuccess=500, maxSize=10 }
 
-\begin{code}
-ultraCheck :: Testable prop => prop -> IO ()
-ultraCheck = quickCheckWith stdArgs { maxSuccess=500, maxSize=5 }
-\end{code}
+ultraCheck :: Testable prop => prop -> IO Result
+ultraCheck = quickCheckWithResult stdArgs { maxSuccess=500, maxSize=5 }
 
-\begin{code}
-tests :: [(String, IO ())]
+tests :: [(String, IO Result)]
 tests = [
   ("Skema.Math: radians to degrees", longCheck prop_rad2deg),
+  ("Skema.Types: vector sizes", longCheck prop_vector_types),
   ("Skema.Types: read IOPointDataType", longCheck prop_read_IOPointDataType),
   ("Skema.Types: json IOPointDataType", longCheck prop_json_IOPointDataType),
   ("Skema.Types: json IOPointType", longCheck prop_json_IOPointType),
+  ("Skema.Util: duplicates ", longCheck prop_duplicates),
   ("Skema.Util: hex -> ByteString", longCheck prop_hexByteString),
   ("Skema.Util: hex <-> ByteString id",longCheck prop_hexByteString_ident),
+  ("Skema.Util: topological sort",longCheck prop_topological),
   ("Skema.JSON: prettyJSON length", ultraCheck prop_prettyjson_length),
   ("Skema.ProgramFlow: encode Example", oneCheck prop_encodeExample),
   ("Skema.ProgramFlow: ProgramFlow -> JSON", ultraCheck prop_jsonProgramFlow),
   ("Skema.ProgramFlow: unasigned points", fastCheck prop_unasignedpoints),
   ("Skema.*: ProgramFlow -> PrettyJSON", ultraCheck prop_jsonPrettyProgramFlow)
  ]
-\end{code}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-- -----------------------------------------------------------------------------

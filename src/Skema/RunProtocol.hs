@@ -14,15 +14,20 @@
 -- You should have received a copy of the GNU General Public License
 -- along with Skema-Common.  If not, see <http://www.gnu.org/licenses/>.
 -- -----------------------------------------------------------------------------
+{-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 -- | Functions to work with the Run Protocol of Skema Platform.
 module Skema.RunProtocol( 
   -- * Run Protocol Types
-  ServerPort(..), RPSkemaProgramID(..), RPProgramList(..),
+  ServerPort(..), RPSkemaProgramID(..), RPProgramList(..), RPProgramRun(..), 
+  RPRunIO(..),
   -- * Run Protocol Functions
-  runBuffers, sendSkemaProgram )
+  runBuffers, runBuffersCB, sendSkemaProgram, createSkemaRun )
        where
 
 -- -----------------------------------------------------------------------------
+import Control.Applicative( pure, (<*>) )
+import Control.Arrow( second )
 import Control.Concurrent( forkIO )
 import Control.Concurrent.MVar( 
   MVar, putMVar, takeMVar, newMVar, modifyMVar_, withMVar, readMVar )
@@ -30,33 +35,36 @@ import Control.Monad( forM_, mzero )
 import Control.Exception( finally )
 import Data.Functor( (<$>) )
 import qualified Data.ByteString as BS( ByteString, empty, null, append )
-import qualified Data.ByteString.Lazy.Char8 as BSCL( ByteString, unpack )
+import qualified Data.ByteString.Lazy.Char8 as BSCL( ByteString )
 import Data.Aeson( FromJSON(..), ToJSON(..), object, (.=), (.:) )
 import qualified Data.Aeson.Types as T
-import Data.Text( pack )
 import Network.HTTP( Response(..), simpleHTTP )
 import Network.Socket( 
-  SocketType(..), AddrInfo(..), AddrInfoFlag(..), Family(..), socket, sClose, 
-  defaultHints, withSocketsDo, connect, getAddrInfo, defaultProtocol )
+  PortNumber, SocketType(..), AddrInfo(..), AddrInfoFlag(..), Family(..), 
+  socket, sClose, defaultHints, withSocketsDo, connect, getAddrInfo, 
+  defaultProtocol )
 import Network.Socket.ByteString( sendAll, recv )
 import Skema.Network( postMultipartData, postFormUrlEncoded )
-import Skema.ProgramFlow( ProgramFlow, generateJSONString )
+import Skema.ProgramFlow( 
+  ProgramFlow, PFNodePoint, generateJSONString )
 import Skema.Concurrent( 
   ChildLocks, newChildLocks, newChildLock, endChildLock, waitForChildren )
-import Skema.Util( fromJSONString )
+import Skema.Util( fromJSONString, toJSONString, b64ByteString, byteStringB64 )
 
 -- -----------------------------------------------------------------------------
+-- | Location of service.
 data ServerPort = ServerPort
-                  { spHostName :: ! String,
-                    spPort :: ! Int }
+                  { spHostName :: ! String -- ^ Service Host name.
+                  , spPort :: ! Int -- ^ Service Port. 
+                  }
   
 -- -----------------------------------------------------------------------------
 webhost :: ServerPort -> String
 webhost rs = "http://"++ spHostName rs ++ ":" ++ (show $ spPort rs)
 
 -- -----------------------------------------------------------------------------
-newServerPort :: ServerPort -> Int -> ServerPort
-newServerPort server p = server { spPort = p }
+newServerPort :: ServerPort -> PortNumber -> ServerPort
+newServerPort server p = server { spPort = fromIntegral p }
 
 -- -----------------------------------------------------------------------------
 desiredAddr :: Maybe AddrInfo
@@ -71,37 +79,97 @@ getServerAddrInfo server = getAddrInfo desiredAddr
                            (Just . show $ spPort server)
   
 -- -----------------------------------------------------------------------------
-data RPError = RPConnError | RPServerError
+data RPError = RPConnError | RPServerError | RPClientError 
+             | RPInternalServerError
              deriving( Show )
 
 -- -----------------------------------------------------------------------------
+-- | Skema Program ID.
 data RPSkemaProgramID = RPSkemaProgramID 
                         { skemaProgramID :: ! BSCL.ByteString }
                       deriving( Show )
 
 instance ToJSON RPSkemaProgramID where
-  toJSON (RPSkemaProgramID p) = object [pack "pid" .= p]
+  toJSON (RPSkemaProgramID p) = object [ "pid" .= p ]
   
 instance FromJSON RPSkemaProgramID where
   parseJSON (T.Object v) = RPSkemaProgramID <$>
-                         v .: pack "pid"
+                           v .: "pid"
   parseJSON _          = mzero  
   
 -- -----------------------------------------------------------------------------
+-- | List of Skema Program IDs.
 data RPProgramList = RPProgramList 
                      { programList :: [BSCL.ByteString] }
                      deriving( Show )
                              
 instance ToJSON RPProgramList where
-  toJSON (RPProgramList ps) = object [pack "pidList" .= ps]
+  toJSON (RPProgramList ps) = object [ "pidList" .= ps ]
   
 instance FromJSON RPProgramList where
   parseJSON (T.Object v) = RPProgramList <$>
-                         v .: pack "pidList"
+                           v .: "pidList"
   parseJSON _          = mzero  
   
 -- -----------------------------------------------------------------------------
-sendSkemaProgram :: ServerPort -> ProgramFlow -> IO (Either RPError String)
+-- | Skema Program Run Request.
+data RPProgramRun = RPProgramRun
+                    { programID :: ! BSCL.ByteString 
+                      -- ^ ID of Skema Program to Run.
+                    , programConstData :: [(PFNodePoint, BS.ByteString)] 
+                      -- ^ Const Data of the Run Instance.
+                    }
+                  deriving( Show )
+  
+encodeB64 :: [(PFNodePoint, BS.ByteString)] -> [(PFNodePoint, String)]
+encodeB64 = map (second byteStringB64)
+
+decodeB64 :: [(PFNodePoint, String)] -> [(PFNodePoint, BS.ByteString)]
+decodeB64 = map (second b64ByteString)
+
+instance ToJSON RPProgramRun where
+  toJSON (RPProgramRun pid cs) = object [ "pid" .= pid
+                                        , "cbuffs" .= encodeB64 cs ]
+  
+instance FromJSON RPProgramRun where
+  parseJSON (T.Object v) = RPProgramRun <$>
+                           v .: "pid" <*>
+                           (fmap decodeB64 $ v .: "cbuffs")
+  parseJSON _          = mzero  
+  
+-- -----------------------------------------------------------------------------
+parseIntegral :: Integral a => T.Value -> T.Parser a
+parseIntegral (T.Number n) = pure (floor n)
+parseIntegral v          = T.typeMismatch "Integral" v
+
+instance ToJSON PortNumber where
+    toJSON = T.Number . fromIntegral
+    {-# INLINE toJSON #-}
+
+instance FromJSON PortNumber where
+    parseJSON = parseIntegral
+    {-# INLINE parseJSON #-}
+
+-- | Skema Run Instance Communication Ports.
+data RPRunIO = RPRunIO
+               { inPorts :: [(PFNodePoint, PortNumber)]
+               , outPorts :: [(PFNodePoint, PortNumber)] }
+             deriving( Show )
+                     
+instance ToJSON RPRunIO where
+  toJSON (RPRunIO is os) = object [ "ins" .= is, "outs" .= os ]
+  
+instance FromJSON RPRunIO where
+  parseJSON (T.Object v) = RPRunIO <$>
+                           v .: "ins" <*>
+                           v .: "outs"
+  parseJSON _          = mzero  
+
+-- -----------------------------------------------------------------------------
+-- | Send Skema Program to Skema Server. Returns the `RPSkemaProgramID` for use
+-- that program.
+sendSkemaProgram :: ServerPort -> ProgramFlow 
+                    -> IO (Either RPError RPSkemaProgramID)
 sendSkemaProgram server pf = do
   let skmData = generateJSONString pf
   catch 
@@ -112,25 +180,33 @@ sendSkemaProgram server pf = do
           Left _ -> return $ Left RPServerError
           Right a -> case rspCode a of
             (2, 0, 0) -> return $ maybe (Left RPServerError) 
-                         (Right . BSCL.unpack . skemaProgramID)
-                         (fromJSONString . rspBody $ a)
+                         Right (fromJSONString . rspBody $ a)
+            (4, _, _) -> return $ Left RPClientError
+            (5, _, _) -> return $ Left RPInternalServerError
             _ -> return $ Left RPServerError
     )
     (\_ -> return $ Left RPConnError
     )
 
 -- -----------------------------------------------------------------------------
-createSkemaRun :: ServerPort -> String -> IO (Either RPError ([Int],[Int]))
-createSkemaRun server pkey = do
+-- | Create a Run Instance of a Program. Returns the ports opened for
+-- communication of data.
+createSkemaRun :: ServerPort -> RPProgramRun -> IO (Either RPError RPRunIO)
+createSkemaRun server prun = do
   catch 
     (do
-        rq <- postFormUrlEncoded (webhost server ++ "/runs") [("pid",pkey)]
+        rq <- postFormUrlEncoded (webhost server ++ "/runs") 
+              [("data",toJSONString prun)]
         rst <- simpleHTTP rq
         case rst of
           Left _ -> return $ Left RPServerError
-          Right a -> catch 
-                     (return . Right . read $ rspBody a) 
-                     (const (return $ Left RPServerError))
+          Right a -> case rspCode a of
+            (2, 0, 0) -> return $ maybe (Left RPServerError)
+                         (Right)
+                         (fromJSONString . rspBody $ a) 
+            (4, _, _) -> return $ Left RPClientError
+            (5, _, _) -> return $ Left RPInternalServerError
+            _ -> return $ Left RPServerError
     )
     (\_ -> return $ Left RPConnError
     )
@@ -160,7 +236,7 @@ sendAsyncBuffer children serverport b ret = do
          `finally` endChildLock lock
   return ()
   
-sendBufferInputs :: ChildLocks -> ServerPort -> [Int] -> [BS.ByteString] 
+sendBufferInputs :: ChildLocks -> ServerPort -> [PortNumber] -> [BS.ByteString] 
                 -> MVar [MVar Bool] -> IO ()
 sendBufferInputs children server ports bs rets = do
   forM_ (zip ports bs) $ \(p,f) -> do
@@ -199,7 +275,7 @@ getAsyncBuffer children serverport ret = do
          `finally` endChildLock lock
   return ()
 
-getBufferOuputs :: ChildLocks -> ServerPort -> [Int] 
+getBufferOuputs :: ChildLocks -> ServerPort -> [PortNumber] 
                    -> MVar [MVar BS.ByteString] -> IO ()
 getBufferOuputs children server ports rets = do
   forM_ ports $ \p -> do
@@ -209,6 +285,8 @@ getBufferOuputs children server ports rets = do
     getAsyncBuffer children (newServerPort server p) ret
     
 -- -----------------------------------------------------------------------------
+-- | Run a Skema Program with a list of input Buffers. Returns the output
+-- Buffers.
 runBuffers :: [BS.ByteString] -> ServerPort -> ProgramFlow 
               -> IO (Maybe [BS.ByteString])
 runBuffers xs server pf = do
@@ -216,10 +294,43 @@ runBuffers xs server pf = do
   case rsend of
     Left _ -> return Nothing
     Right pid -> do
-      rcreate <- createSkemaRun server pid
+      rcreate <- createSkemaRun server $ RPProgramRun (skemaProgramID pid) []
       case rcreate of
         Left _ -> return Nothing
-        Right (iports,oports) -> do
+        Right ios -> do
+          let iports = map snd $ inPorts ios
+              oports = map snd $ outPorts ios
+          children <- newChildLocks
+          sends <- newMVar []
+          rets <- newMVar []
+          
+          sendBufferInputs children server iports xs sends
+          getBufferOuputs children server oports rets
+        
+          waitForChildren children $ return ()
+          
+          sendsvals <- withMVar sends (mapM readMVar)
+        
+          if (all id $ sendsvals)
+            then withMVar rets (mapM readMVar) >>= return . Just
+            else return Nothing
+
+-- -----------------------------------------------------------------------------
+-- | Run a Skema Program with a list of input Buffers and a list of const
+-- buffers. Returns the output Buffers.
+runBuffersCB :: [BS.ByteString] -> [(PFNodePoint, BS.ByteString)] -> ServerPort 
+                -> ProgramFlow -> IO (Maybe [BS.ByteString])
+runBuffersCB xs cbuffs server pf = do
+  rsend <- sendSkemaProgram server pf
+  case rsend of
+    Left _ -> return Nothing
+    Right pid -> do
+      rcreate <- createSkemaRun server $ RPProgramRun (skemaProgramID pid) cbuffs
+      case rcreate of
+        Left _ -> return Nothing
+        Right ios -> do
+          let iports = map snd $ inPorts ios
+              oports = map snd $ outPorts ios
           children <- newChildLocks
           sends <- newMVar []
           rets <- newMVar []
